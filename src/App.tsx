@@ -307,7 +307,7 @@ export default function App() {
       const resultBase64 = await processImageFrontend(item.file, colorQuant.toString());
       
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const promptStr = "Convert this logo to SVG according to your system instructions.";
+      const promptStr = "Convert this raster image to a mathematically precise vector SVG following all system instructions exactly. Ensure the SVG includes semantic <title> and <desc> tags for accessibility, is intelligently layered with descriptive `data-name` attributes on <g> tags, and perfectly captures the visual essence, layout, and colors of the input graphic without any background rectangle.";
       
       const responseStream = await ai.models.generateContentStream({
         model: model,
@@ -900,7 +900,7 @@ export default function App() {
             <div className="flex flex-col items-center justify-center p-12 border-4 border-dashed border-emerald-500/50 rounded-3xl bg-emerald-500/10 shadow-[0_0_100px_rgba(16,185,129,0.2)]">
                <Upload className="w-16 h-16 text-emerald-500 mb-6 animate-bounce drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
                <h2 className="text-2xl font-bold tracking-widest uppercase text-emerald-500">{t('uploadTitle')}</h2>
-               <p className="text-emerald-500/80 mt-2 font-mono uppercase tracking-wider text-sm">Drop your raster images anywhere to begin</p>
+               <p className="text-emerald-500/80 mt-2 font-mono uppercase tracking-wider text-sm">{t('dropToBegin')}</p>
             </div>
          </div>
       )}
@@ -1024,11 +1024,11 @@ export default function App() {
                       <li key={id} className="flex flex-col gap-1 border-b border-white/5 pb-3 last:border-0 last:pb-0">
                          <button onClick={() => { setActiveItemId(id); setBatchSummary({show: false, failed: []}); }} className="flex justify-between items-center w-full text-left font-semibold text-xs hover:text-emerald-400 group transition-colors">
                             <span>{item.file.name}</span>
-                            <span className="text-[9px] uppercase tracking-widest opacity-0 group-hover:opacity-60 transition-opacity">Show Details</span>
+                            <span className="text-[9px] uppercase tracking-widest opacity-0 group-hover:opacity-60 transition-opacity">{t("showDetails")}</span>
                          </button>
                          <span className="font-mono text-[10px] text-red-400 opacity-80 truncate" title={item.error || 'Unknown error code'}>{item.error || 'Unknown error code'}</span>
                          <button onClick={() => setFailedItemDetails(item.error || 'Unknown error code')} className={`mt-1 text-[9px] uppercase tracking-widest font-bold self-start opacity-70 hover:opacity-100 hover:text-emerald-400 transition-colors`}>
-                           View Stack Trace
+                           {t('viewStackTrace')}
                          </button>
                       </li>
                     );
@@ -1118,7 +1118,7 @@ export default function App() {
                     onClick={() => document.getElementById('file-upload-batch')?.click()}
                   >
                     <input id="file-upload-batch" type="file" multiple accept="image/png, image/jpeg, image/webp" className="hidden" onChange={handleFileChange} />
-                    <span className="text-xs font-semibold uppercase tracking-widest">+ Add Images</span>
+                    <span className="text-xs font-semibold uppercase tracking-widest">{t('addImages')}</span>
                  </div>
               </div>
 
@@ -1232,9 +1232,9 @@ export default function App() {
                     <label className={`block space-y-1.5`}>
                        <span className={`text-[10px] uppercase font-bold tracking-widest ${themeClasses.textMuted}`}>{t('renderQuality')}</span>
                        <select value={quality} onChange={e => setQuality(e.target.value)} className={`w-full p-2 text-xs rounded-lg border ${themeClasses.borderSecondary} bg-transparent outline-none transition-all duration-200 focus:ring-2 focus:ring-emerald-500/50 focus:border-transparent cursor-pointer`}>
-                         <option value="high">High Fidelity (Most Details)</option>
-                         <option value="optimized">Optimized (Balanced)</option>
-                         <option value="minimal">Minimal (Flat vectors)</option>
+                         <option value="high">{t("qualityHigh")}</option>
+                         <option value="optimized">{t("qualityOptimized")}</option>
+                         <option value="minimal">{t("qualityMinimal")}</option>
                        </select>
                     </label>
 
@@ -1315,7 +1315,7 @@ export default function App() {
                            </div>
                            {activeItemId && items.find(i => i.id === activeItemId)?.status === 'completed' && (
                               <button onClick={() => applyExportSettings(activeItemId)} className={`mt-3 w-full p-2 text-[10px] uppercase tracking-widest font-bold rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all duration-200 active:scale-95`}>
-                                Apply Settings
+                                {t('applySettings')}
                               </button>
                            )}
                         </div>
@@ -1331,8 +1331,8 @@ export default function App() {
               {!activeItem ? (
                  <div className="flex flex-col items-center justify-center h-full opacity-60 my-auto">
                     <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600&auto=format&fit=crop" alt="Empty State Graphic" className="w-48 h-48 object-cover rounded-3xl mb-8 opacity-40 grayscale mix-blend-overlay pointer-events-none" referrerPolicy="no-referrer" />
-                    <span className="text-sm font-bold uppercase tracking-[0.2em] font-mono text-center max-w-sm">Select or Upload an Image</span>
-                    <p className={`text-xs mt-3 text-center max-w-xs ${themeClasses.textMuted}`}>Drop a raster logo anywhere to start its AI vectorization process.</p>
+                    <span className="text-sm font-bold uppercase tracking-[0.2em] font-mono text-center max-w-sm">{t('emptyStateTitle')}</span>
+                    <p className={`text-xs mt-3 text-center max-w-xs ${themeClasses.textMuted}`}>{t('emptyStateDesc')}</p>
                  </div>
               ) : (
                  <div className="flex flex-col h-full gap-6">
@@ -1344,16 +1344,16 @@ export default function App() {
                        </h2>
                        
                        <div className="flex gap-2">
-                          <button onClick={() => processItem(activeItem.id)} disabled={activeItem.status === 'processing'} className={`p-2 rounded-lg border ${themeClasses.borderSecondary} hover:bg-emerald-500/10 hover:text-emerald-500 transition-all duration-200 active:scale-90 disabled:opacity-30`} title="Process / Regenerate" aria-label="Process / Regenerate">
+                          <button onClick={() => processItem(activeItem.id)} disabled={activeItem.status === 'processing'} className={`p-2 rounded-lg border ${themeClasses.borderSecondary} hover:bg-emerald-500/10 hover:text-emerald-500 transition-all duration-200 active:scale-90 disabled:opacity-30`} title={t("processRegenerate")} aria-label={t("processRegenerate")}>
                              <Zap className="w-4 h-4" />
                           </button>
                           
                           {activeItem.status === 'completed' && activeItem.history.length > 1 && (
                              <>
-                                <button onClick={() => handleUndo(activeItem.id)} disabled={activeItem.historyIndex <= 0} className={`p-2 rounded-lg border ${themeClasses.borderSecondary} ${themeClasses.hoverBg} transition-all duration-200 active:scale-90 disabled:opacity-30`} title="Undo Modification" aria-label="Undo Edit">
+                                <button onClick={() => handleUndo(activeItem.id)} disabled={activeItem.historyIndex <= 0} className={`p-2 rounded-lg border ${themeClasses.borderSecondary} ${themeClasses.hoverBg} transition-all duration-200 active:scale-90 disabled:opacity-30`} title={t("undoEdit")} aria-label={t("undoEdit")}>
                                    <Undo className="w-4 h-4" />
                                 </button>
-                                <button onClick={() => handleRedo(activeItem.id)} disabled={activeItem.historyIndex >= activeItem.history.length - 1} className={`p-2 rounded-lg border ${themeClasses.borderSecondary} ${themeClasses.hoverBg} transition-all duration-200 active:scale-90 disabled:opacity-30`} title="Redo Modification" aria-label="Redo Edit">
+                                <button onClick={() => handleRedo(activeItem.id)} disabled={activeItem.historyIndex >= activeItem.history.length - 1} className={`p-2 rounded-lg border ${themeClasses.borderSecondary} ${themeClasses.hoverBg} transition-all duration-200 active:scale-90 disabled:opacity-30`} title={t("redoEdit")} aria-label={t("redoEdit")}>
                                    <Redo className="w-4 h-4" />
                                 </button>
                              </>
@@ -1395,7 +1395,7 @@ export default function App() {
                        {/* Source Box */}
                        <div className="flex flex-col items-center justify-center gap-4 h-full relative">
                           <img src={activeItem.preview} alt="Original" className="max-h-[300px] object-contain rounded-xl opacity-90" />
-                          <span className={`text-[10px] uppercase font-bold tracking-widest ${themeClasses.textMuted} absolute bottom-0`}>Original Image</span>
+                          <span className={`text-[10px] uppercase font-bold tracking-widest ${themeClasses.textMuted} absolute bottom-0`}>{t('originalImage')}</span>
                        </div>
                        
                        {/* Result Box */}
@@ -1475,13 +1475,13 @@ export default function App() {
                              >
                                <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
                                  <div className="flex gap-2">
-                                   <button onClick={() => setZoomScale(s => Math.min(s * 1.2, 10))} className={`p-1.5 rounded-lg border ${themeClasses.borderSecondary} bg-black/20 hover:bg-black/40 text-white backdrop-blur transition-all active:scale-95`} title="Zoom In"><ZoomIn className="w-4 h-4" /></button>
-                                   <button onClick={() => setZoomScale(s => Math.max(s / 1.2, 0.1))} className={`p-1.5 rounded-lg border ${themeClasses.borderSecondary} bg-black/20 hover:bg-black/40 text-white backdrop-blur transition-all active:scale-95`} title="Zoom Out"><ZoomOut className="w-4 h-4" /></button>
-                                   <button onClick={() => { setZoomScale(1); setPanX(0); setPanY(0); }} className={`p-1.5 rounded-lg border ${themeClasses.borderSecondary} bg-black/20 hover:bg-black/40 text-white backdrop-blur transition-all active:scale-95`} title="Fit Screen"><Maximize className="w-4 h-4" /></button>
+                                   <button onClick={() => setZoomScale(s => Math.min(s * 1.2, 10))} className={`p-1.5 rounded-lg border ${themeClasses.borderSecondary} bg-black/20 hover:bg-black/40 text-white backdrop-blur transition-all active:scale-95`} title={t("zoomIn")}><ZoomIn className="w-4 h-4" /></button>
+                                   <button onClick={() => setZoomScale(s => Math.max(s / 1.2, 0.1))} className={`p-1.5 rounded-lg border ${themeClasses.borderSecondary} bg-black/20 hover:bg-black/40 text-white backdrop-blur transition-all active:scale-95`} title={t("zoomOut")}><ZoomOut className="w-4 h-4" /></button>
+                                   <button onClick={() => { setZoomScale(1); setPanX(0); setPanY(0); }} className={`p-1.5 rounded-lg border ${themeClasses.borderSecondary} bg-black/20 hover:bg-black/40 text-white backdrop-blur transition-all active:scale-95`} title={t("fitScreen")}><Maximize className="w-4 h-4" /></button>
                                  </div>
                                  <div className="flex justify-end pr-1 gap-3 items-center">
-                                   <span className="text-[10px] font-mono font-bold tracking-widest text-emerald-400">PAN {Math.round(panX)},{Math.round(panY)}</span>
-                                   <span className="text-[10px] font-mono font-bold tracking-widest text-emerald-400">ZOOM {Math.round(zoomScale * 100)}%</span>
+                                   <span className="text-[10px] font-mono font-bold tracking-widest text-emerald-400">{t('pan')} {Math.round(panX)},{Math.round(panY)}</span>
+                                   <span className="text-[10px] font-mono font-bold tracking-widest text-emerald-400">{t('zoom')} {Math.round(zoomScale * 100)}%</span>
                                  </div>
                                </div>
                                
@@ -1556,10 +1556,10 @@ export default function App() {
                                     </svg>
                                   </div>
                                 </div>
-                                <span className={`text-[10px] uppercase tracking-[0.3em] font-medium text-emerald-500`}>Awaiting Render</span>
+                                <span className={`text-[10px] uppercase tracking-[0.3em] font-medium text-emerald-500`}>{t('awaitingRender')}</span>
                              </div>
                           )}
-                          <span className={`text-[10px] uppercase font-bold tracking-widest opacity-40 absolute bottom-4 bg-[#0A0A0A] px-2 py-1 rounded drop-shadow-lg text-white`}>Vector Rendering</span>
+                          <span className={`text-[10px] uppercase font-bold tracking-widest opacity-40 absolute bottom-4 bg-[#0A0A0A] px-2 py-1 rounded drop-shadow-lg text-white`}>{t('vectorRendering')}</span>
                        </div>
                     </div>
                     
@@ -1576,7 +1576,7 @@ export default function App() {
                            <ul className="space-y-3 mt-3">
                              {validationErrors.map((err, i) => (
                                <li key={i} className="text-xs font-mono text-amber-600 dark:text-amber-400 flex items-start gap-3">
-                                 <span className="opacity-60 bg-amber-500/10 px-1.5 py-0.5 rounded mt-0.5">Line {err.line}</span> 
+                                 <span className="opacity-60 bg-amber-500/10 px-1.5 py-0.5 rounded mt-0.5">{t('line')} {err.line}</span> 
                                  <span className="mt-1 leading-relaxed">{err.desc}</span>
                                </li>
                              ))}
@@ -1590,7 +1590,7 @@ export default function App() {
                        <div className={`mt-4 pt-4 border-t ${themeClasses.borderPrimary} flex flex-col gap-3 relative pb-8`}>
                           <LayerEditor svgBase64={activeItem.svgBase64 || ''} itemId={activeItem.id} onUpdate={updateItemSuccess} isDark={isDark} />
                           <h4 className="text-[10px] uppercase font-bold tracking-[0.2em] opacity-60 flex items-center gap-2 mt-4">
-                             <List className="w-3 h-3" /> Semantic Parts Detected
+                             <List className="w-3 h-3" /> {t('semanticParts')}
                           </h4>
                           <div className="flex flex-wrap gap-2">
                              {legendItems.map(item => (
@@ -1618,7 +1618,7 @@ export default function App() {
                                             <span className="truncate ml-auto font-semibold">{v}</span>
                                           </div>
                                         ))}
-                                        {Object.keys(item.props).length === 0 && <span className="opacity-50 italic">No attributes tracked</span>}
+                                        {Object.keys(item.props).length === 0 && <span className="opacity-50 italic">{t('noAttributesTracked')}</span>}
                                       </div>
                                     </div>
                                   )}
