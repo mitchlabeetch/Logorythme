@@ -137,23 +137,7 @@ const upload = multer({
 });
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const SYSTEM_INSTRUCTION = (quality: string) => `You are a world-class, elite vector graphics AI engine. Your sole objective is to surgically trace the provided raster image and reconstruct it into a production-ready, mathematically pristine SVG.
-
-CRITICAL DIRECTIVES:
-1. MATHEMATICAL PRECISION: Trace all shapes with exact geometric mastery. Completely eliminate wobbly, shaky, or imprecise lines. Employ minimal, mathematically optimal Bezier curves and utilize geometric primitives (<circle>, <rect>, <polygon>) wherever structurally sound.
-2. FLAWLESS PATH LOGIC: You MUST use proper SVG fill rules (e.g., \`fill-rule="evenodd"\`) to elegantly handle compound paths, donut-holes, and precise cutouts. Do NOT use crude overlapping patches.
-3. TRANSPARENT BACKGROUND: ABOLISH solid background rectangles. The overarching canvas MUST be transparent. Only include backgrounds if they are inextricably part of the logo's intrinsic design.
-4. SEMANTIC HIERARCHY & ACCESSIBILITY: Group structurally related paths within \`<g>\` tags. Maintain absolute strictness with z-depth layering, from back (bottom) to front (top). You MUST include proper accessibility attributes on the root \`<svg>\` element (e.g. \`role="img"\`, \`aria-label="Image description"\`) and provide a descriptive \`<title>\` and \`<desc>\` element right inside the SVG root to ensure screen-reader compatibility.
-5. MANDATORY LAYER NAMING: EVERY distinct semantic part MUST be wrapped in a \`<g>\` tag containing a highly descriptive \`data-name="Your Element Name"\`. Example: <g data-name="Inner Ring">. This is NON-NEGOTIABLE. Without this, the UI layer editor will catastrophically fail.
-6. SCALABILITY: Define a precise, tight bounding \`viewBox\` (e.g., \`viewBox="0 0 500 500"\`). Do NOT hardcode fixed pixel width/height without an accompanying viewBox.
-7. DETAIL PROFILE [${quality.toUpperCase()}]: ${
-  quality === 'minimal' ? 'Extremist Minimalism. Vigorously simplify shapes, ruthlessly flatten gradients into solid colors, and eradicate micro-noise. Output the absolute lowest possible anchor count while retaining core recognition.' 
-  : quality === 'optimized' ? 'Supreme Optimization. Strike an immaculate balance between high visual fidelity and lean, clean path data.' 
-  : 'Hyper-Fidelity. Yield a flawless, pixel-perfect, exhaustively detailed vector tracing. Maintain razor-sharp anchor placement and meticulous curve fitting.'
-}
-8. CLEAN STYLING: Enforce inline attributes (\`fill="..."\`, \`stroke="..."\`). FORBID the use of global \`<style>\` blocks that pollute the DOM. Guarantee all numerical coordinates are pristine and valid.
-9. ABSOLUTE ZERO FORMATTING: Output EXCLUSIVELY raw, valid XML/SVG code. Start with \`<svg>\` and end with \`</svg>\`. ZERO markdown (\`\`\`svg). ZERO conversational text. ZERO HTML wrappers. Your response must be parsed immediately by a strict XML parser.
-Failure to follow these directives will result in system failure. Act as the ultimate vectorization compiler.`;
+const SYSTEM_INSTRUCTION = (options: any) => `You are a world-class, elite vector graphics AI engine. Your sole objective is to surgically trace the provided raster image and reconstruct it into a production-ready, mathematically pristine SVG.\n\nCRITICAL DIRECTIVES:\n1. MATHEMATICAL PRECISION: Trace all shapes with exact geometric mastery. Completely eliminate wobbly, shaky, or imprecise lines. Employ minimal, mathematically optimal Bezier curves and utilize geometric primitives (<circle>, <rect>, <polygon>) wherever structurally sound.\n2. FLAWLESS PATH LOGIC: You MUST use proper SVG fill rules (e.g., \`fill-rule=\"evenodd\"\`) to elegantly handle compound paths, donut-holes, and precise cutouts. Do NOT use crude overlapping patches.\n3. TRANSPARENT BACKGROUND: ABOLISH solid background rectangles. The overarching canvas MUST be transparent. Only include backgrounds if they are inextricably part of the logo's intrinsic design.\n4. SEMANTIC HIERARCHY & ACCESSIBILITY: Group structurally related paths within \`<g>\` tags. Maintain absolute strictness with z-depth layering, from back (bottom) to front (top). You MUST include proper accessibility attributes on the root \`<svg>\` element (e.g. \`role=\"img\"\`, \`aria-label=\"Image description\"\`, \`tabindex=\"0\"\`) and provide a descriptive \`<title>\` and \`<desc>\` element right inside the SVG root to ensure screen-reader compatibility.\n5. MANDATORY LAYER NAMING: EVERY distinct semantic part MUST be wrapped in a \`<g>\` tag containing a highly descriptive \`data-name=\"Your Element Name\"\`. Example: <g data-name=\"Inner Ring\">. This is NON-NEGOTIABLE. Without this, the UI layer editor will catastrophically fail.\n6. SCALABILITY: Define a precise, tight bounding \`viewBox\` (e.g., \`viewBox=\"0 0 500 500\"\`). Do NOT hardcode fixed pixel width/height without an accompanying viewBox.\n7. DETAIL PROFILE [${(options.quality || 'high').toUpperCase()}]: ${  options.quality === 'minimal' ? 'Extremist Minimalism. Vigorously simplify shapes, ruthlessly flatten gradients into solid colors, and eradicate micro-noise. Output the absolute lowest possible anchor count while retaining core recognition.'   : options.quality === 'optimized' ? 'Supreme Optimization. Strike an immaculate balance between high visual fidelity and lean, clean path data.'   : 'Hyper-Fidelity. Yield a flawless, pixel-perfect, exhaustively detailed vector tracing. Maintain razor-sharp anchor placement and meticulous curve fitting.'}\n${(options.forceWhite === 'true' || options.forceWhite === true) ? '8. COLOR INJECTION: YOU MUST FORCE EVERY EXPOSED PATH, SHAPE, AND POLYGON TO BE PURE WHITE (#FFFFFF). NO OTHER COLORS ARE PERMITTED.\n9.' : '8.'} CLEAN STYLING: Enforce inline attributes (\`fill=\"...\"\`, \`stroke=\"...\"\`). FORBID the use of global \`<style>\` blocks that pollute the DOM. Guarantee all numerical coordinates are pristine and valid.\n${(options.forceWhite === 'true' || options.forceWhite === true) ? '10.' : '9.'} ABSOLUTE ZERO FORMATTING: Output EXCLUSIVELY raw, valid XML/SVG code. Start with \`<svg>\` and end with \`</svg>\`. ZERO markdown (\`\`\`svg). ZERO conversational text. ZERO HTML wrappers. Your response must be parsed immediately by a strict XML parser.\nFailure to follow these directives will result in system failure. Act as the ultimate vectorization compiler.`;
 
 // Define Custom Errors
 class AIError extends Error {
@@ -185,7 +169,8 @@ interface OptimizeOptions {
   removeMetadata?: boolean;
   pathFitting?: boolean;
   strokeOpt?: boolean;
-  colorQuant?: boolean;
+  colorQuant?: boolean | string;
+  forceWhite?: boolean | string;
   quality?: string;
   model?: string;
 }
@@ -264,16 +249,41 @@ function cleanAndValidateSVG(rawSvg: string, options: OptimizeOptions = {}): str
       overrides.convertColors = { currentColor: false, names2hex: true, rgb2hex: true, shorthex: true };
     }
 
+    const plugins: any[] = [
+      {
+        name: 'preset-default',
+        params: { overrides }
+      },
+      'convertStyleToAttrs',
+      'inlineStyles',
+    ];
+
+    if (options.forceWhite === 'true' || options.forceWhite === true) {
+      plugins.push({
+        name: 'forceWhiteColors',
+        type: 'visitor',
+        fn: () => {
+          return {
+            element: {
+              enter: (node: any) => {
+                if (node.attributes.fill && node.attributes.fill !== 'none') {
+                  node.attributes.fill = '#FFFFFF';
+                } else if (!node.attributes.fill && ['path', 'circle', 'rect', 'polygon', 'ellipse', 'polyline'].includes(node.name)) {
+                  node.attributes.fill = '#FFFFFF';
+                }
+                if (node.attributes.stroke && node.attributes.stroke !== 'none') {
+                  node.attributes.stroke = '#FFFFFF';
+                }
+              }
+            }
+          };
+        }
+      });
+    }
+
     result = optimize(cleanSvg, {
       multipass: options.pathFitting ? true : false,
-      plugins: [
-        {
-          name: 'preset-default',
-          params: { overrides }
-        },
-        'convertStyleToAttrs',
-        'inlineStyles',
-      ],
+      plugins: plugins,
     });
   } catch (err: any) {
     throw new SVGValidationError(`SVGO optimization failed: ${err.message}`);
@@ -346,7 +356,7 @@ const logoWorkerProcessor = async (job: any) => {
       ],
       config: {
         temperature: 0.0,
-        systemInstruction: SYSTEM_INSTRUCTION(options.quality || 'high'),
+        systemInstruction: SYSTEM_INSTRUCTION(options),
       }
     });
 
@@ -529,6 +539,7 @@ app.post("/api/v1/optimize-svg", express.json({ limit: '50mb' }), async (req, re
     let pngBuffer;
     try {
       pngBuffer = await sharp(Buffer.from(cleanedSvg))
+        .trim()
         .resize(2000, 2000, { fit: "inside" })
         .png({ quality: 100 })
         .toBuffer();

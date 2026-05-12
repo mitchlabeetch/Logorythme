@@ -159,7 +159,10 @@ const resources = {
        processRegenerate: "Process / Regenerate",
        undoEdit: "Undo Edit",
        redoEdit: "Redo Edit",
-       semanticParts: "Semantic Parts Detected"
+       semanticParts: "Semantic Parts Detected",
+       forceWhiteLabel: "Pure White Silhouette",
+       forceWhiteDesc: "Force all SVG paths and shapes to be #FFFFFF",
+       actions: "Actions"
      }
    },
    fr: {
@@ -319,7 +322,10 @@ const resources = {
        processRegenerate: "Traiter / Régénérer",
        undoEdit: "Annuler la modification",
        redoEdit: "Rétablir la modification",
-       semanticParts: "Parties sémantiques détectées"
+       semanticParts: "Parties sémantiques détectées",
+       forceWhiteLabel: "Silhouette Blanche",
+       forceWhiteDesc: "Force tous les tracés à être #FFFFFF",
+       actions: "Actions"
      }
    }
 };
@@ -328,7 +334,7 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: 'en', // default language
+    lng: 'fr', // default language
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false // react already safes from xss

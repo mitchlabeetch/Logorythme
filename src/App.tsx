@@ -110,24 +110,30 @@ export default function App() {
   const [items, setItems] = useState<UploadItem[]>([]);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   
-  const [isDark, setIsDark] = useState(true);
+  const [forceWhite, setForceWhite] = useState(true);
+  const [isDark, setIsDark] = useState(false);
   const [queueStats, setQueueStats] = useState({ pending: 0, processing: 0, completed: 0, failed: 0, total: 0 });
   
   const [simplifyPaths, setSimplifyPaths] = useState(true);
   const [removeMetadata, setRemoveMetadata] = useState(false);
   const [pathFitting, setPathFitting] = useState(true);
   const [strokeOpt, setStrokeOpt] = useState(true);
+  const [highlightedLayerIds, setHighlightedLayerIds] = useState<string[]>([]);
   const [colorQuant, setColorQuant] = useState(false);
   const [advancedSVGO, setAdvancedSVGO] = useState(false);
   const [customWidth, setCustomWidth] = useState<number>(2000);
   const [customHeight, setCustomHeight] = useState<number>(2000);
+  const [useMultiplier, setUseMultiplier] = useState<boolean>(false);
+  const [scaleMultiplier, setScaleMultiplier] = useState<number>(1);
+  const [originalDims, setOriginalDims] = useState<{width: number, height: number} | null>(null);
   const [strokeWidth, setStrokeWidth] = useState<number>(1);
   const [quality, setQuality] = useState('high'); // 'high', 'optimized', 'minimal'
-  const [model, setModel] = useState('gemini-3.1-pro-preview'); 
+  const [model, setModel] = useState('gemini-2.5-flash'); 
   const [isModelSelectOpen, setIsModelSelectOpen] = useState(false);
   const [isModelChanging, setIsModelChanging] = useState(false);
   
   const [hoveredLegend, setHoveredLegend] = useState<{name: string, props: Record<string, string>} | null>(null);
+  const [hoverPosition, setHoverPosition] = useState<{x: number, y: number} | null>(null);
   const [legendItems, setLegendItems] = useState<{name: string, props: Record<string, string>}[]>([]);
   const [validationErrors, setValidationErrors] = useState<{line: number, desc: string}[] | null>(null);
 
@@ -307,7 +313,7 @@ export default function App() {
       const resultBase64 = await processImageFrontend(item.file, colorQuant.toString());
       
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const promptStr = "Convert this raster image to a mathematically precise vector SVG following all system instructions exactly. Ensure the SVG includes semantic <title> and <desc> tags for accessibility, is intelligently layered with descriptive `data-name` attributes on <g> tags, and perfectly captures the visual essence, layout, and colors of the input graphic without any background rectangle.";
+      const promptStr = "Convert this raster image to a mathematically precise vector SVG following all system instructions exactly. Ensure the SVG includes semantic <title> and <desc> tags for accessibility, is intelligently layered with descriptive `data-name` attributes on <g> tags, and perfectly captures the visual essence and layout of the input graphic without any background rectangle. \n\nCRITICAL: The output SVG MUST have all paths filled exclusively with white (fill=\"#FFFFFF\") to serve as a pure white silhouette on a transparent background, matching the MVP requirement. If there are strokes, make them white too.";
       
       const responseStream = await ai.models.generateContentStream({
         model: model,
@@ -354,7 +360,8 @@ export default function App() {
          removeMetadata: removeMetadata.toString() === 'true',
          pathFitting: pathFitting.toString() === 'true',
          strokeOpt: strokeOpt.toString() === 'true',
-         colorQuant: colorQuant.toString()
+         colorQuant: colorQuant.toString(),
+         forceWhite: forceWhite.toString()
       };
 
       const optResponse = await fetch('/api/v1/optimize-svg', {
@@ -728,6 +735,22 @@ export default function App() {
 
   // Extract legend items when active item changes
   const activeItem = items.find(i => i.id === activeItemId);
+  
+  useEffect(() => {
+    if (activeItem?.pngBase64) {
+       const img = new Image();
+       img.onload = () => {
+          setOriginalDims({ width: img.width, height: img.height });
+          // Only sync if not using multiplier (or sync anyway as base)
+          if (!useMultiplier) {
+             setCustomWidth(img.width);
+             setCustomHeight(img.height);
+          }
+       };
+       img.src = activeItem.pngBase64;
+    }
+  }, [activeItem?.id, useMultiplier]); // Intentionally minimal dependencies
+  
   useEffect(() => {
     if (activeItem?.svgBase64) {
       try {
@@ -926,12 +949,11 @@ export default function App() {
           <div className="flex flex-col">
             <span className="text-[10px] tracking-[0.3em] uppercase opacity-50 font-semibold mb-2">{t('headerSub')}</span>
             <h1 className="text-3xl md:text-4xl font-light italic tracking-tight font-serif flex items-center gap-4">
-              Logo<span className={`${isDark ? 'text-white' : 'text-black'} opacity-40 italic transition-colors duration-300`}>_Vectorizer</span>
+              Logo<span className={`${isDark ? 'text-white' : 'text-black'} opacity-40 italic transition-colors duration-300`}>_Rythme</span>
               <button 
                  onClick={() => setIsDark(!isDark)}
                  className={`ml-4 p-2 rounded-full ${themeClasses.iconBg} ${themeClasses.hoverBg} transition-all duration-200 active:scale-90`}
-                 title={t('themeToggleTooltip')}
-                 aria-label={t('themeToggleTooltip')}
+                 title={t('themeToggleTooltip')} aria-label={t('themeToggleTooltip')}
               >
                 {isDark ? <Sun className="w-4 h-4 opacity-70" /> : <Moon className="w-4 h-4 opacity-70" />}
               </button>
@@ -1158,7 +1180,7 @@ export default function App() {
                          </button>
 
                          {isModelSelectOpen && (
-                           <div className={`absolute z-[100] top-full left-0 right-0 mt-2 p-1 rounded-xl border ${themeClasses.borderPrimary} bg-[#141414] dark:bg-[#0A0A0A] shadow-2xl animate-in fade-in zoom-in-95 duration-200`}>
+                           <div className={`absolute z-[100] top-full left-0 right-0 mt-2 p-1 rounded-xl border ${themeClasses.borderPrimary} ${isDark ? 'bg-[#141414]' : 'bg-white'} dark:bg-[#0A0A0A] drop-shadow-2xl text-black dark:text-white shadow-2xl animate-in fade-in zoom-in-95 duration-200`}>
                              {AI_MODELS.map(m => (
                                <button
                                  key={m.id}
@@ -1293,19 +1315,51 @@ export default function App() {
                           </div>
                         )}
                         
-                        <div className="mt-4 border-t border-dashed border-white/20 pt-4">
+                                                <div className="mt-4 border-t border-dashed border-white/20 pt-4">
+                           <label className={`flex items-start space-x-3 cursor-pointer ${themeClasses.textSemiMuted} hover:opacity-100 transition-all duration-200 mb-4`}>
+                             <input type="checkbox" checked={forceWhite} onChange={(e) => setForceWhite(e.target.checked)} className={`mt-0.5 form-checkbox h-3.5 w-3.5 rounded border-${isDark ? 'white/20' : 'black/20'} text-emerald-500 bg-transparent transition-all duration-200 focus:ring-2 focus:ring-emerald-500/50 cursor-pointer`} />
+                             <div className="flex flex-col gap-0.5">
+                                <span className="text-[11px] font-semibold">{t('forceWhiteLabel') || "Pure White Silhouette"}</span>
+                                <span className={`text-[9px] ${themeClasses.textMuted} leading-tight`}>{t('forceWhiteDesc') || "Force all SVG paths and shapes to be #FFFFFF"}</span>
+                             </div>
+                           </label>
                            <span className={`block opacity-60 uppercase font-bold tracking-wider mb-2 text-[10px]`}>{t('exportSettingsTitle')}</span>
+                           <label className="flex items-start space-x-3 cursor-pointer text-white/60 hover:opacity-100 transition-all duration-200 mb-3">
+                              <input type="checkbox" checked={useMultiplier} onChange={(e) => setUseMultiplier(e.target.checked)} className="mt-0.5 form-checkbox h-3.5 w-3.5 rounded border-white/20 text-emerald-500 bg-transparent transition-all duration-200 focus:ring-2 focus:ring-emerald-500/50 cursor-pointer" />
+                              <div className="flex flex-col gap-0.5">
+                                 <span className="text-[11px] font-semibold">Use Scale Multiplier</span>
+                              </div>
+                           </label>
+                           {useMultiplier ? (
+                             <div className="mb-3">
+                               <div className="flex justify-between items-center mb-1">
+                                 <label className="text-[9px] opacity-60 uppercase tracking-widest font-bold">Multiplier ({(scaleMultiplier > 0 ? scaleMultiplier : -1 / scaleMultiplier).toFixed(1)}x)</label>
+                                 <span className="text-xs font-mono">{Math.round(originalDims ? originalDims.width * (scaleMultiplier > 0 ? scaleMultiplier : -1 / scaleMultiplier) : customWidth)} x {Math.round(originalDims ? originalDims.height * (scaleMultiplier > 0 ? scaleMultiplier : -1 / scaleMultiplier) : customHeight)} px</span>
+                               </div>
+                               <input type="range" min="-5" max="5" step="0.1" value={scaleMultiplier} onChange={e => {
+                                 let val = parseFloat(e.target.value);
+                                 if (val > -1 && val < 1) val = val >= 0 ? 1 : -1; // Avoid divide by zero or weird small numbers
+                                 setScaleMultiplier(val);
+                                 if (originalDims) {
+                                    const factor = val > 0 ? val : -1 / val;
+                                    setCustomWidth(Math.round(originalDims.width * factor));
+                                    setCustomHeight(Math.round(originalDims.height * factor));
+                                 }
+                               }} className="w-full accent-emerald-500" />
+                             </div>
+                           ) : (
                            <div className="grid grid-cols-2 gap-3 mb-3">
-                              <div title={t('exportWidthTooltip')}>
+                              <div title={t('exportWidthTooltip')} aria-label={t('exportWidthTooltip')}>
                                  <label className="text-[9px] opacity-60 uppercase tracking-widest font-bold block mb-1 cursor-help">{t('exportWidth')}</label>
                                  <input type="number" min="10" max="10000" value={customWidth} onChange={(e) => setCustomWidth(parseInt(e.target.value) || 0)} className={`w-full p-2 text-xs rounded-lg border ${themeClasses.borderSecondary} bg-transparent outline-none transition-all duration-200 focus:ring-2 focus:ring-emerald-500/50`} />
                               </div>
-                              <div title={t('exportHeightTooltip')}>
+                              <div title={t('exportHeightTooltip')} aria-label={t('exportHeightTooltip')}>
                                  <label className="text-[9px] opacity-60 uppercase tracking-widest font-bold block mb-1 cursor-help">{t('exportHeight')}</label>
                                  <input type="number" min="10" max="10000" value={customHeight} onChange={(e) => setCustomHeight(parseInt(e.target.value) || 0)} className={`w-full p-2 text-xs rounded-lg border ${themeClasses.borderSecondary} bg-transparent outline-none transition-all duration-200 focus:ring-2 focus:ring-emerald-500/50`} />
                               </div>
                            </div>
-                           <div title={t('exportStrokeTooltip')}>
+                           )}
+                           <div title={t('exportStrokeTooltip')} aria-label={t('exportStrokeTooltip')}>
                               <label className="flex items-center justify-between text-[9px] opacity-60 uppercase tracking-widest font-bold mb-1 cursor-help">
                                 <span>{t('exportStrokeWidth')}</span>
                                 <span>{strokeWidth}px</span>
@@ -1318,11 +1372,71 @@ export default function App() {
                                 {t('applySettings')}
                               </button>
                            )}
+                           
+                           {activeItem && (
+                              <div className="mt-4 pt-4 border-t border-dashed border-white/20">
+                                 <span className={`block opacity-60 uppercase font-bold tracking-wider mb-2 text-[10px]`}>{t('actions') || "ACTIONS"}</span>
+                                 <div className="flex flex-wrap gap-2">
+                                    <button onClick={() => processItem(activeItem.id)} disabled={activeItem.status === 'processing'} className={`p-2 flex-grow flex justify-center items-center rounded-lg border ${themeClasses.borderSecondary} hover:bg-emerald-500/10 hover:text-emerald-500 transition-all duration-200 active:scale-90 disabled:opacity-30`} title={t("processRegenerate")} aria-label={t("processRegenerate")}>
+                                       <Zap className="w-4 h-4" />
+                                    </button>
+                                    
+                                    {activeItem.status === 'completed' && activeItem.history.length > 1 && (
+                                       <>
+                                          <button onClick={() => handleUndo(activeItem.id)} disabled={activeItem.historyIndex <= 0} className={`p-2 flex-grow flex justify-center items-center rounded-lg border ${themeClasses.borderSecondary} ${themeClasses.hoverBg} transition-all duration-200 active:scale-90 disabled:opacity-30`} title={t("undoEdit")} aria-label={t("undoEdit")}>
+                                             <Undo className="w-4 h-4" />
+                                          </button>
+                                          <button onClick={() => handleRedo(activeItem.id)} disabled={activeItem.historyIndex >= activeItem.history.length - 1} className={`p-2 flex-grow flex justify-center items-center rounded-lg border ${themeClasses.borderSecondary} ${themeClasses.hoverBg} transition-all duration-200 active:scale-90 disabled:opacity-30`} title={t("redoEdit")} aria-label={t("redoEdit")}>
+                                             <Redo className="w-4 h-4" />
+                                          </button>
+                                       </>
+                                    )}
+                                    
+                                    {activeItem.status === 'completed' && (
+                                       <>
+                                       {previewSvgStr ? (
+                                          <button onClick={() => handleApplyPreview(activeItem.id)} disabled={activeItem.status === 'processing' || isPreviewLoading} className={`text-[10px] w-full mt-1 uppercase tracking-widest px-4 py-2 font-bold rounded-lg border ${themeClasses.borderSecondary} bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition-all duration-200 active:scale-95 disabled:opacity-50`} title={t('applyLivePreviewTitle')} aria-label={t('applyLivePreviewTitle')}>
+                                             {isPreviewLoading ? t('loadingPreview') : t('applyPreview')}
+                                          </button>
+                                       ) : (
+                                          <button disabled className={`text-[10px] w-full mt-1 uppercase tracking-widest px-4 py-2 font-bold rounded-lg border ${themeClasses.borderSecondary} bg-gray-500/10 text-gray-400 opacity-50`} title={t('makeChangesToPreviewTitle')} aria-label={t('makeChangesToPreviewTitle')}>
+                                             {t('upToDate')}
+                                          </button>
+                                       )}
+                                       {activeItem.pngBase64 && (
+                                          <a href={`data:image/png;base64,${activeItem.pngBase64}`} download={`${activeItem.file.name.replace(/\.[^/.]+$/, "")}.png`} className={`p-2 flex-grow mt-1 flex items-center justify-center gap-2 rounded-lg border ${themeClasses.borderSecondary} ${themeClasses.hoverBg} transition-all duration-200 active:scale-90 font-bold text-[10px]`} title={t('downloadPngBtn')} aria-label={t('downloadPngBtn')}>
+                                             <Download className="w-4 h-4" /> PNG
+                                          </a>
+                                       )}
+                                       {activeItem.svgBase64 && (
+                                          <button onClick={() => downloadIndividualSvg(activeItem)} className={`p-2 flex-grow mt-1 flex items-center justify-center gap-2 rounded-lg border ${themeClasses.borderSecondary} ${themeClasses.hoverBg} transition-all duration-200 active:scale-90 font-bold text-[10px]`} title={t('downloadSvgBtn')} aria-label={t('downloadSvgBtn')}>
+                                             <Download className="w-4 h-4" /> SVG
+                                          </button>
+                                       )}
+                                       </>
+                                    )}
+                                 </div>
+                              </div>
+                           )}
                         </div>
                       </div>
                     </div>
                  </div>
-              </div>
+                            </div>
+
+             {items.filter(i => i.status === 'idle' || i.status === 'failed').length > 0 && (
+                <button
+                   onClick={() => {
+                     const pendingCount = items.filter(i => i.status === 'idle' || i.status === 'failed').length;
+                     if (pendingCount > 1) setShowBatchConfirm(true);
+                     else processAll();
+                   }}
+                   className={`w-full py-4 text-xs font-bold uppercase tracking-wider rounded-xl border ${themeClasses.borderPrimary} bg-emerald-500 hover:bg-emerald-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.2)] transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 mt-4`}
+                >
+                   <Zap className="w-4 h-4" />
+                   {t('processAllPending') || "PROCESS ALL PENDING"}
+                </button>
+             )}
 
            </div>
 
@@ -1342,50 +1456,9 @@ export default function App() {
                           <span className="truncate max-w-[200px] sm:max-w-sm">{activeItem.file.name}</span>
                           {activeItem.status === 'processing' && <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />}
                        </h2>
-                       
-                       <div className="flex gap-2">
-                          <button onClick={() => processItem(activeItem.id)} disabled={activeItem.status === 'processing'} className={`p-2 rounded-lg border ${themeClasses.borderSecondary} hover:bg-emerald-500/10 hover:text-emerald-500 transition-all duration-200 active:scale-90 disabled:opacity-30`} title={t("processRegenerate")} aria-label={t("processRegenerate")}>
-                             <Zap className="w-4 h-4" />
-                          </button>
-                          
-                          {activeItem.status === 'completed' && activeItem.history.length > 1 && (
-                             <>
-                                <button onClick={() => handleUndo(activeItem.id)} disabled={activeItem.historyIndex <= 0} className={`p-2 rounded-lg border ${themeClasses.borderSecondary} ${themeClasses.hoverBg} transition-all duration-200 active:scale-90 disabled:opacity-30`} title={t("undoEdit")} aria-label={t("undoEdit")}>
-                                   <Undo className="w-4 h-4" />
-                                </button>
-                                <button onClick={() => handleRedo(activeItem.id)} disabled={activeItem.historyIndex >= activeItem.history.length - 1} className={`p-2 rounded-lg border ${themeClasses.borderSecondary} ${themeClasses.hoverBg} transition-all duration-200 active:scale-90 disabled:opacity-30`} title={t("redoEdit")} aria-label={t("redoEdit")}>
-                                   <Redo className="w-4 h-4" />
-                                </button>
-                             </>
-                          )}
-                          
-                          {activeItem.status === 'completed' && (
-                             <>
-                               {previewSvgStr ? (
-                                 <button onClick={() => handleApplyPreview(activeItem.id)} disabled={activeItem.status === 'processing' || isPreviewLoading} className={`text-[10px] uppercase tracking-widest px-4 py-2 font-bold rounded-lg border ${themeClasses.borderSecondary} bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition-all duration-200 active:scale-95 disabled:opacity-50`} title={t('applyLivePreviewTitle')}>
-                                    {isPreviewLoading ? t('loadingPreview') : t('applyPreview')}
-                                 </button>
-                               ) : (
-                                 <button disabled className={`text-[10px] uppercase tracking-widest px-4 py-2 font-bold rounded-lg border ${themeClasses.borderSecondary} bg-gray-500/10 text-gray-400 opacity-50`} title={t('makeChangesToPreviewTitle')}>
-                                    {t('upToDate')}
-                                 </button>
-                               )}
-                               {activeItem.pngBase64 && (
-                                 <a href={`data:image/png;base64,${activeItem.pngBase64}`} download={`${activeItem.file.name.replace(/\.[^/.]+$/, "")}.png`} className={`p-2 flex items-center justify-center gap-2 rounded-lg border ${themeClasses.borderSecondary} ${themeClasses.hoverBg} transition-all duration-200 active:scale-90 font-bold text-[10px]`} title={t('downloadPngBtn')} aria-label={t('downloadPngBtn')}>
-                                    <Download className="w-4 h-4" /> {t('downloadPngBtn')}
-                                 </a>
-                               )}
-                               {activeItem.svgBase64 && (
-                                 <button onClick={() => downloadIndividualSvg(activeItem)} className={`p-2 flex items-center justify-center gap-2 rounded-lg border ${themeClasses.borderSecondary} ${themeClasses.hoverBg} transition-all duration-200 active:scale-90 font-bold text-[10px]`} title={t('downloadSvgBtn')} aria-label={t('downloadSvgBtn')}>
-                                    <Download className="w-4 h-4" /> {t('downloadSvgBtn')}
-                                 </button>
-                               )}
-                             </>
-                          )}
-                       </div>
                     </div>
-
-                    {activeItem.error && (
+                       
+                       {activeItem.error && (
                        <div className={`p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 flex items-center gap-3 text-xs`}>
                           <AlertCircle className="w-4 h-4" /> {activeItem.error}
                        </div>
@@ -1395,7 +1468,7 @@ export default function App() {
                        {/* Source Box */}
                        <div className="flex flex-col items-center justify-center gap-4 h-full relative">
                           <img src={activeItem.preview} alt="Original" className="max-h-[300px] object-contain rounded-xl opacity-90" />
-                          <span className={`text-[10px] uppercase font-bold tracking-widest ${themeClasses.textMuted} absolute bottom-0`}>{t('originalImage')}</span>
+                          <span className={`text-[10px] uppercase font-bold tracking-widest ${themeClasses.textMuted} absolute bottom-4 px-2 py-1 bg-black/40 dark:bg-white/10 rounded drop-shadow-lg text-white`}>{t('originalImage')}</span>
                        </div>
                        
                        {/* Result Box */}
@@ -1406,7 +1479,7 @@ export default function App() {
                        }}>
                           {activeItem.status === 'processing' ? (
                              <div className="flex flex-col items-center justify-center gap-6 z-10 bg-black/40 backdrop-blur-md absolute inset-0 text-white transition-opacity duration-300">
-                                <Loader2 className="w-8 h-8 animate-spin text-emerald-500 drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
+                                <svg className="w-12 h-12 text-emerald-500 animate-spin drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]" viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" strokeWidth="4" className="opacity-20" /><path d="M25 5 A 20 20 0 0 1 45 25" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeDasharray="31.4 31.4" className="opacity-80"><animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="1s" repeatCount="indefinite" /></path></svg>
                                 <div className="text-xs uppercase tracking-widest font-mono text-emerald-400 animate-pulse">
                                    {progressStages[activeItem.progressStage]}
                                 </div>
@@ -1473,17 +1546,7 @@ export default function App() {
                                  e.currentTarget.releasePointerCapture(e.pointerId);
                                }}
                              >
-                               <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
-                                 <div className="flex gap-2">
-                                   <button onClick={() => setZoomScale(s => Math.min(s * 1.2, 10))} className={`p-1.5 rounded-lg border ${themeClasses.borderSecondary} bg-black/20 hover:bg-black/40 text-white backdrop-blur transition-all active:scale-95`} title={t("zoomIn")}><ZoomIn className="w-4 h-4" /></button>
-                                   <button onClick={() => setZoomScale(s => Math.max(s / 1.2, 0.1))} className={`p-1.5 rounded-lg border ${themeClasses.borderSecondary} bg-black/20 hover:bg-black/40 text-white backdrop-blur transition-all active:scale-95`} title={t("zoomOut")}><ZoomOut className="w-4 h-4" /></button>
-                                   <button onClick={() => { setZoomScale(1); setPanX(0); setPanY(0); }} className={`p-1.5 rounded-lg border ${themeClasses.borderSecondary} bg-black/20 hover:bg-black/40 text-white backdrop-blur transition-all active:scale-95`} title={t("fitScreen")}><Maximize className="w-4 h-4" /></button>
-                                 </div>
-                                 <div className="flex justify-end pr-1 gap-3 items-center">
-                                   <span className="text-[10px] font-mono font-bold tracking-widest text-emerald-400">{t('pan')} {Math.round(panX)},{Math.round(panY)}</span>
-                                   <span className="text-[10px] font-mono font-bold tracking-widest text-emerald-400">{t('zoom')} {Math.round(zoomScale * 100)}%</span>
-                                 </div>
-                               </div>
+                               
                                
                                <div className="absolute bottom-4 right-4 w-32 h-32 bg-[#141414]/90 dark:bg-[#0A0A0A]/90 border border-emerald-500/20 rounded-xl overflow-hidden backdrop-blur-md hidden sm:block z-20 shadow-2xl">
                                   <div className="w-full h-full relative" style={{ padding: '8px' }}>
@@ -1520,6 +1583,7 @@ export default function App() {
                                  }
                                }}
                                onMouseMove={(e) => {
+                                 setHoverPosition({ x: e.clientX, y: e.clientY });
                                  const target = e.target as SVGElement;
                                  const name = target.getAttribute('data-name') || target.closest('[data-name]')?.getAttribute('data-name');
                                  if (name && hoveredLegend?.name !== name) {
@@ -1529,7 +1593,7 @@ export default function App() {
                                    setHoveredLegend(null);
                                  }
                                }}
-                                 onMouseLeave={() => setHoveredLegend(null)}
+                                 onMouseLeave={() => { setHoveredLegend(null); setHoverPosition(null); }}
                                  onMouseDown={(e) => {
                                    if (!e.shiftKey && e.button !== 1) {
                                      const target = e.target as SVGElement;
@@ -1559,7 +1623,7 @@ export default function App() {
                                 <span className={`text-[10px] uppercase tracking-[0.3em] font-medium text-emerald-500`}>{t('awaitingRender')}</span>
                              </div>
                           )}
-                          <span className={`text-[10px] uppercase font-bold tracking-widest opacity-40 absolute bottom-4 bg-[#0A0A0A] px-2 py-1 rounded drop-shadow-lg text-white`}>{t('vectorRendering')}</span>
+                          <span className={`text-[10px] uppercase font-bold tracking-widest opacity-80 absolute bottom-4 bg-[#0A0A0A] px-2 py-1 rounded drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] text-emerald-400 z-10`}>{t('vectorRendering')}</span>
                        </div>
                     </div>
                     
@@ -1588,7 +1652,23 @@ export default function App() {
                     {/* Interactive Legend Row */}
                     {activeItem.status === 'completed' && legendItems.length > 0 && (
                        <div className={`mt-4 pt-4 border-t ${themeClasses.borderPrimary} flex flex-col gap-3 relative pb-8`}>
-                          <LayerEditor svgBase64={activeItem.svgBase64 || ''} itemId={activeItem.id} onUpdate={updateItemSuccess} isDark={isDark} />
+                          
+      {hoveredLegend && hoverPosition && (
+        <div 
+          className="fixed pointer-events-none z-[9999] bg-[#141414]/90 dark:bg-[#0A0A0A]/90 border border-emerald-500/30 shadow-2xl backdrop-blur-md rounded-xl p-3 text-xs text-white"
+          style={{ left: hoverPosition.x + 15, top: hoverPosition.y + 15 }}
+        >
+          <div className="font-bold text-emerald-400 mb-1 leading-none">{hoveredLegend.name}</div>
+          {Object.entries(hoveredLegend.props).slice(0, 8).map(([k, v]) => (
+            <div key={k} className="flex gap-2 justify-between">
+              <span className="opacity-60">{k}:</span>
+              <span className="font-mono">{v.toString().substring(0, 20)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+                          <LayerEditor svgBase64={activeItem.svgBase64 || ''} itemId={activeItem.id} onUpdate={(itemId, newSvg) => updateItemSuccess(itemId, activeItem.pngBase64 || '', newSvg)} onHighlight={setHighlightedLayerIds} isDark={isDark} />
                           <h4 className="text-[10px] uppercase font-bold tracking-[0.2em] opacity-60 flex items-center gap-2 mt-4">
                              <List className="w-3 h-3" /> {t('semanticParts')}
                           </h4>
@@ -1603,13 +1683,13 @@ export default function App() {
                                         setPartFillColor(item.props.fill || item.props.stroke || '#000000');
                                      }}
                                      className={`text-[10px] font-mono px-3 py-1.5 rounded-full border transition-all duration-200 active:scale-95 cursor-crosshair
-                                        ${(hoveredLegend?.name === item.name || selectedPart?.name === item.name) ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10' : `${themeClasses.borderSecondary} text-white/60 hover:border-white/40`}
+                                        ${(hoveredLegend?.name === item.name || selectedPart?.name === item.name) ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10' : `${themeClasses.borderSecondary} ${themeClasses.textSemiMuted} hover:border-emerald-500/30 hover:opacity-100`}
                                      `}
                                   >
                                      {item.name}
                                   </button>
                                   {hoveredLegend?.name === item.name && selectedPart?.name !== item.name && (
-                                    <div className="absolute z-50 top-full mt-2 left-1/2 -translate-x-1/2 w-max max-w-[220px] p-4 rounded-xl bg-[#141414] dark:bg-[#0A0A0A] border border-emerald-500/30 shadow-2xl pointer-events-none animate-in fade-in slide-in-from-top-1 duration-200">
+                                    <div className={`absolute z-50 top-full mt-2 left-1/2 -translate-x-1/2 w-max max-w-[220px] p-4 rounded-xl ${isDark ? 'bg-[#141414]' : 'bg-white'} dark:bg-[#0A0A0A] drop-shadow-2xl text-black dark:text-white border border-emerald-500/30 shadow-2xl pointer-events-none animate-in fade-in slide-in-from-top-1 duration-200`}>
                                       <div className="text-emerald-400 font-bold text-[11px] uppercase tracking-widest mb-2 border-b border-emerald-500/20 pb-2">{item.name}</div>
                                       <div className="flex flex-col gap-1.5 text-[10px] font-mono text-white/80">
                                         {Object.entries(item.props).map(([k,v]) => (
