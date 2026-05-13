@@ -20,6 +20,8 @@ interface LayerNode {
   isLocked: boolean;
   fillColor?: string;
   strokeColor?: string;
+  strokeWidth?: number;
+  opacity?: number;
   domRef: Element;
 }
 
@@ -53,6 +55,29 @@ export const LayerEditor: React.FC<LayerEditorProps> = ({ svgBase64, itemId, onU
       const parser = new DOMParser();
       const doc = parser.parseFromString(rawSvg, "image/svg+xml");
       
+      // Only ensure data-name on groups, do not recursively wrap
+      let modificationsMade = false;
+      const normalizeNode = (el: Element) => {
+         const children = Array.from(el.children);
+         for (const child of children) {
+            if (['title', 'defs', 'style', 'script'].includes(child.tagName)) continue;
+            
+            if (child.tagName === 'g') {
+               if (!child.hasAttribute('data-name')) {
+                  child.setAttribute('data-name', `Group ${Math.floor(Math.random()*1000)}`);
+                  modificationsMade = true;
+               }
+               normalizeNode(child);
+            } else {
+               if (!child.hasAttribute('data-name')) {
+                  const name = `${child.tagName.charAt(0).toUpperCase() + child.tagName.slice(1)} ${Math.floor(Math.random()*1000)}`;
+                  child.setAttribute('data-name', name);
+                  modificationsMade = true;
+               }
+            }
+         }
+      };
+
       let uid = 0;
       const buildTree = (el: Element, parentPath: string): LayerNode[] => {
         const result: LayerNode[] = [];
@@ -87,6 +112,32 @@ export const LayerEditor: React.FC<LayerEditorProps> = ({ svgBase64, itemId, onU
              if (strokeColor === 'none') strokeColor = undefined;
           }
           
+          let strokeWidth = undefined;
+          if (strokeColor || child.hasAttribute('stroke-width')) {
+              const swAttr = child.getAttribute('stroke-width');
+              if (swAttr !== null) {
+                  strokeWidth = parseFloat(swAttr);
+                  if (isNaN(strokeWidth)) strokeWidth = undefined;
+              } else {
+                  const styleStr = child.getAttribute('style') || "";
+                  const match = styleStr.match(/stroke-width:\s*([^;]+)/);
+                  if (match) {
+                      strokeWidth = parseFloat(match[1]);
+                      if (isNaN(strokeWidth)) strokeWidth = undefined;
+                  }
+              }
+              if (strokeWidth === undefined && strokeColor) strokeWidth = 1;
+          }
+          
+          let opacity = undefined;
+          if (type === 'group') {
+             const opAttr = child.getAttribute('opacity');
+             if (opAttr !== null) {
+                opacity = parseFloat(opAttr);
+                if (isNaN(opacity)) opacity = undefined;
+             }
+          }
+          
           const node: LayerNode = {
             id,
             name,
@@ -97,6 +148,8 @@ export const LayerEditor: React.FC<LayerEditorProps> = ({ svgBase64, itemId, onU
             isLocked,
             fillColor,
             strokeColor,
+            strokeWidth,
+            opacity,
             domRef: child
           };
           result.push(node);
@@ -106,6 +159,12 @@ export const LayerEditor: React.FC<LayerEditorProps> = ({ svgBase64, itemId, onU
       
       const svgRoot = doc.querySelector('svg');
       if (svgRoot) {
+        normalizeNode(svgRoot);
+        if (modificationsMade) {
+           const ser = new XMLSerializer();
+           onUpdate(itemId, btoa(ser.serializeToString(doc)));
+           return;
+        }
         setLayers(buildTree(svgRoot, 'root'));
         setPendingLayers(null); // Reset pending on new SVG
       }
@@ -219,7 +278,7 @@ export const LayerEditor: React.FC<LayerEditorProps> = ({ svgBase64, itemId, onU
     };
 
     const finalList = insertNode(intermediateList);
-    setPendingLayers(finalList);
+    commitSvgChange(finalList, true);
   };
 
   const updateAttr = (list: LayerNode[], id: string, op: (item: LayerNode) => LayerNode): LayerNode[] => {
@@ -244,7 +303,7 @@ export const LayerEditor: React.FC<LayerEditorProps> = ({ svgBase64, itemId, onU
        item.domRef.setAttribute('data-name', newName);
        return { ...item, name: newName };
     });
-    setPendingLayers(result);
+    commitSvgChange(result, true);
     setEditingId(null);
   };
 
@@ -256,7 +315,7 @@ export const LayerEditor: React.FC<LayerEditorProps> = ({ svgBase64, itemId, onU
        else item.domRef.removeAttribute('display');
        return { ...item, isVisible: newVis };
     });
-    setPendingLayers(result);
+    commitSvgChange(result, true);
   };
 
   const toggleLock = (id: string) => {
@@ -273,7 +332,13 @@ export const LayerEditor: React.FC<LayerEditorProps> = ({ svgBase64, itemId, onU
 
   const handleColorChange = (id: string, fillStr?: string, strokeStr?: string) => {
     const activeLayers = pendingLayers || layers;
-    const result = updateAttr(activeLayers, id, item => {
+    
+    let idsToApply = [id];
+    if (selectedIds.has(id)) {
+       idsToApply = Array.from(selectedIds);
+    }
+    
+    const applyToItem = (item: LayerNode) => {
        if (item.isLocked) return item;
        if (fillStr !== undefined) {
          if (fillStr === 'none' || fillStr === '') {
@@ -294,8 +359,68 @@ export const LayerEditor: React.FC<LayerEditorProps> = ({ svgBase64, itemId, onU
          }
        }
        return { ...item };
+    };
+
+    let result = activeLayers;
+    for (const applyId of idsToApply) {
+        result = updateAttr(result, applyId, applyToItem);
+    }
+    commitSvgChange(result, true);
+  };
+
+  const handleStrokeWidthChange = (id: string, width: number) => {
+    const activeLayers = pendingLayers || layers;
+    
+    let idsToApply = [id];
+    if (selectedIds.has(id)) {
+       idsToApply = Array.from(selectedIds);
+    }
+    
+    const applyToItem = (item: LayerNode) => {
+       if (item.isLocked) return item;
+       item.domRef.setAttribute('stroke-width', width.toString());
+       return { ...item, strokeWidth: width };
+    };
+
+    let result = activeLayers;
+    for (const applyId of idsToApply) {
+        result = updateAttr(result, applyId, applyToItem);
+    }
+    commitSvgChange(result, true);
+  };
+
+  const handleOpacityChange = (id: string, opacity: number) => {
+    const activeLayers = pendingLayers || layers;
+    const result = updateAttr(activeLayers, id, item => {
+       if (item.isLocked) return item;
+       item.domRef.setAttribute('opacity', opacity.toString());
+       return { ...item, opacity };
     });
-    setPendingLayers(result);
+    commitSvgChange(result, true);
+  };
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleDelete = () => {
+     const activeLayers = pendingLayers || layers;
+     let filteredLayers = cloneLayerTree(activeLayers);
+     
+     const removeSelected = (list: LayerNode[]): LayerNode[] => {
+       const newList = [...list];
+       for (let i = newList.length - 1; i >= 0; i--) {
+         if (selectedIds.has(newList[i].id)) {
+           newList.splice(i, 1);
+         } else if (newList[i].children.length > 0) {
+           newList[i] = { ...newList[i], children: removeSelected(newList[i].children) };
+         }
+       }
+       return newList;
+     };
+     
+     filteredLayers = removeSelected(filteredLayers);
+     commitSvgChange(filteredLayers, true);
+     setSelectedIds(new Set());
+     setShowDeleteConfirm(false);
   };
 
   const flatten = (node: LayerNode): LayerNode[] => [node, ...node.children.flatMap(children => flatten(children))];
@@ -323,14 +448,18 @@ export const LayerEditor: React.FC<LayerEditorProps> = ({ svgBase64, itemId, onU
     const activeLayers = pendingLayers || layers;
     const all = activeLayers.flatMap(n => flatten(n));
     const newSel = new Set<string>();
-    all.forEach(n => { if (n.isVisible) newSel.add(n.id); });
+    all.forEach(n => { if (n.isVisible && !n.isLocked) newSel.add(n.id); });
     setSelectedIds(newSel);
+  };
+
+  const cloneLayerTree = (nodes: LayerNode[]): LayerNode[] => {
+     return nodes.map(n => ({ ...n, children: cloneLayerTree(n.children) }));
   };
 
   const handleUngroup = () => {
      if (selectedIds.size === 0) return;
      const activeLayers = pendingLayers || layers;
-     const newLayers = JSON.parse(JSON.stringify(activeLayers));
+     const newLayers = cloneLayerTree(activeLayers);
      
      const selectedIdsArray = Array.from(selectedIds);
      const firstSelectedId = selectedIdsArray[0] as string;
@@ -347,9 +476,10 @@ export const LayerEditor: React.FC<LayerEditorProps> = ({ svgBase64, itemId, onU
         newLayers.splice(index, 1, ...node.children);
      }
      
-     setPendingLayers(newLayers);
+     commitSvgChange(newLayers, true);
      setSelectedIds(new Set(node.children.map((c: any) => c.id)));
   };
+
   
   const handleRenameGroup = () => {
        const selectedIdsArray = Array.from(selectedIds);
@@ -446,7 +576,7 @@ const selectedIdsArray = Array.from(selectedIds);
      }
      
      setSelectedIds(new Set([newGroup.id]));
-     setPendingLayers(filteredLayers);
+     commitSvgChange(filteredLayers, true);
   };
 
   const toggleSelection = (e: React.MouseEvent, id: string) => {
@@ -467,11 +597,18 @@ const selectedIdsArray = Array.from(selectedIds);
           onMouseLeave={() => setHoveredNodeId(null)}
           className={`flex items-center gap-1.5 py-1.5 px-2 rounded-lg cursor-pointer text-xs group/item transition-all duration-200
             ${selectedIds.has(node.id) ? (isDark ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.2)]' : 'bg-emerald-50 text-emerald-600 border border-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.2)]') : 'border border-transparent hover:bg-black/5 dark:hover:bg-white/5'}
-            ${!node.isVisible ? 'opacity-40' : ''}
+            ${!node.isVisible || node.isLocked ? 'opacity-40' : ''}
           `}
-          style={{ paddingLeft: `${depth * 12 + 8}px`, ...(dragOverTarget === node.id && dragOverPosition === 'inside' ? { boxShadow: 'inset 0 0 0 2px #10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)' } : {}) }}
-          draggable={!node.isLocked}
-          onDragStart={(e) => handleDragStart(e, node.id)}
+          style={{ 
+             paddingLeft: `${depth * 20 + 8}px`,
+             ...(dragOverTarget === node.id ? (
+                dragOverPosition === 'inside'
+                   ? { boxShadow: 'inset 0 0 0 2px #10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)' }
+                   : dragOverPosition === 'before'
+                   ? { boxShadow: 'inset 0 2px 0 0 #10b981' }
+                   : { boxShadow: 'inset 0 -2px 0 0 #10b981' }
+             ) : {})
+          }}
           onDragOver={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -506,7 +643,13 @@ const selectedIdsArray = Array.from(selectedIds);
           }}
           onClick={(e) => toggleSelection(e, node.id)}
         >
-          <div className={`${node.isLocked ? 'text-black/10 dark:text-white/10 cursor-not-allowed' : 'text-black/30 dark:text-white/30 cursor-grab active:cursor-grabbing hover:text-emerald-500'}`} title={t('editorDrag')} aria-label={t('editorDrag')}>
+          <div 
+            className={`${node.isLocked ? 'text-black/10 dark:text-white/10 cursor-not-allowed' : 'text-black/30 dark:text-white/30 cursor-grab active:cursor-grabbing hover:text-emerald-500'} opacity-0 group-hover/item:opacity-100 transition-opacity`} 
+            title={t('editorDrag')} 
+            aria-label={t('editorDrag')}
+            draggable={!node.isLocked}
+            onDragStart={(e) => handleDragStart(e, node.id)}
+          >
              <GripVertical className="w-3 h-3" />
           </div>
           
@@ -540,12 +683,24 @@ const selectedIdsArray = Array.from(selectedIds);
               <button onClick={(e) => { e.stopPropagation(); handleRename(node.id, editName); }} className="hover:text-emerald-500"><Check className="w-3 h-3" /></button>
             </div>
           ) : (
-            <div className="flex-1 truncate select-none" title={t('editorRename')} aria-label={t('editorRename')} onDoubleClick={(e) => { if (!node.isLocked) { e.stopPropagation(); setEditingId(node.id); setEditName(node.name); } }}>
+            <div className="flex-1 truncate select-none" title={node.name} aria-label={node.name} onDoubleClick={(e) => { if (!node.isLocked) { e.stopPropagation(); setEditingId(node.id); setEditName(node.name); } }}>
               {node.name}
             </div>
           )}
 
           <div className="flex items-center gap-1 ml-auto shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity" style={{ opacity: selectedIds.has(node.id) || node.isLocked || !node.isVisible ? 1 : undefined }}>
+            {node.type === 'group' && !node.isLocked && (
+               <input 
+                  type="range" 
+                  min="0" max="1" step="0.05" 
+                  value={node.opacity !== undefined ? node.opacity : 1}
+                  onChange={e => handleOpacityChange(node.id, parseFloat(e.target.value))}
+                  onClick={e => e.stopPropagation()}
+                  className="w-16 h-1 mr-2 bg-black/10 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                  title={t('editorGroupOpacity')}
+                  aria-label={t('editorGroupOpacity')}
+               />
+            )}
             <button onClick={(e) => { e.stopPropagation(); toggleLock(node.id); }} className={`p-1 ${node.isLocked ? 'text-amber-500 opacity-100' : 'opacity-40 hover:opacity-100 dark:text-white text-black'}`} title={t('editorLock')} aria-label={t('editorLock')}>
               {node.isLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
             </button>
@@ -554,15 +709,25 @@ const selectedIdsArray = Array.from(selectedIds);
             </button>
             
             {node.fillColor !== undefined && !node.isLocked && (
-               <div className="relative w-4 h-4 ml-1 rounded-full border border-black/20 dark:border-white/20 overflow-hidden" onClick={e => e.stopPropagation()} title={t('editorFillColor')} aria-label={t('editorFillColor')}>
+               <div className="relative w-4 h-4 ml-1 rounded-full border border-black/20 dark:border-white/20 overflow-hidden shrink-0" onClick={e => e.stopPropagation()} title={t('editorFillColor')} aria-label={t('editorFillColor')}>
                   <input type="color" className="absolute -inset-2 w-8 h-8 cursor-pointer opacity-0" value={node.fillColor.startsWith('#') ? node.fillColor.substring(0, 7) : '#000000'} onChange={(e) => handleColorChange(node.id, e.target.value, undefined)} />
                   <div className="w-full h-full pointer-events-none" style={{ backgroundColor: node.fillColor.startsWith('#') ? node.fillColor : 'transparent' }} />
                </div>
             )}
             {node.strokeColor !== undefined && !node.isLocked && (
-               <div className="relative w-4 h-4 ml-1 rounded-full border-2 border-black/20 dark:border-white/20 overflow-hidden flex items-center justify-center p-0.5" onClick={e => e.stopPropagation()} title={t('editorStrokeColor')} aria-label={t('editorStrokeColor')}>
-                  <input type="color" className="absolute -inset-2 w-8 h-8 cursor-pointer opacity-0" value={node.strokeColor.startsWith('#') ? node.strokeColor.substring(0, 7) : '#000000'} onChange={(e) => handleColorChange(node.id, undefined, e.target.value)} />
-                  <div className="w-full h-full bg-transparent rounded-full border-2 pointer-events-none" style={{ borderColor: node.strokeColor.startsWith('#') ? node.strokeColor : 'transparent' }} />
+               <div className="flex items-center" onClick={e => e.stopPropagation()}>
+                  <div className="relative w-4 h-4 ml-1 rounded-full border-2 border-black/20 dark:border-white/20 overflow-hidden flex items-center justify-center p-0.5 shrink-0" title={t('editorStrokeColor')} aria-label={t('editorStrokeColor')}>
+                     <input type="color" className="absolute -inset-2 w-8 h-8 cursor-pointer opacity-0" value={node.strokeColor.startsWith('#') ? node.strokeColor.substring(0, 7) : '#000000'} onChange={(e) => handleColorChange(node.id, undefined, e.target.value)} />
+                     <div className="w-full h-full bg-transparent rounded-full border-2 pointer-events-none" style={{ borderColor: node.strokeColor.startsWith('#') ? node.strokeColor : 'transparent' }} />
+                  </div>
+                  <input 
+                     type="range" min="0" max="20" step="0.5" 
+                     value={node.strokeWidth !== undefined ? node.strokeWidth : 1}
+                     onChange={e => handleStrokeWidthChange(node.id, parseFloat(e.target.value))}
+                     className="w-12 h-1 ml-1.5 bg-black/10 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                     title={t('editorStrokeWidth', 'Stroke Width')}
+                     aria-label={t('editorStrokeWidth', 'Stroke Width')}
+                  />
                </div>
             )}
           </div>
@@ -590,24 +755,24 @@ const selectedIdsArray = Array.from(selectedIds);
          </h4>
          
          <div className="flex items-center gap-2">
-           <button onClick={handleSelectAll} className="text-xs flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity px-2 py-1 bg-black/5 dark:bg-white/5 rounded active:scale-95 cursor-pointer" title="Select All" aria-label="Select All">
-             <span className="hidden sm:inline">Select All</span>
+           <button onClick={handleSelectAll} className="text-xs flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity px-2 py-1 bg-black/5 dark:bg-white/5 rounded active:scale-95 cursor-pointer" title={t('editorSelectAll')} aria-label={t('editorSelectAll')}>
+             <span className="hidden sm:inline">{t('editorSelectAll')}</span>
            </button>
            <button 
              onClick={handleUngroup} 
              disabled={selectedIds.size === 0 || Array.from(selectedIds).some(sid => (pendingLayers||layers).flatMap(n=>flatten(n)).find(n=>n.id===sid && n.type !== 'group'))}
              className="text-xs flex items-center gap-1 opacity-60 hover:opacity-100 disabled:opacity-20 transition-opacity px-2 py-1 bg-black/5 dark:bg-white/5 rounded active:scale-95 cursor-pointer"
-             title="Ungroup" aria-label="Ungroup"
+             title={t('editorUngroup')} aria-label={t('editorUngroup')}
            >
-             <span className="hidden sm:inline">Ungroup</span>
+             <span className="hidden sm:inline">{t('editorUngroup')}</span>
            </button>
            <button 
              onClick={handleRenameGroup} 
              disabled={selectedIds.size !== 1}
              className="text-xs flex items-center gap-1 opacity-60 hover:opacity-100 disabled:opacity-20 transition-opacity px-2 py-1 bg-black/5 dark:bg-white/5 rounded active:scale-95 cursor-pointer"
-             title="Rename" aria-label="Rename"
+             title={t('editorRenameGroup')} aria-label={t('editorRenameGroup')}
            >
-             <span className="hidden sm:inline">Rename</span>
+             <span className="hidden sm:inline">{t('editorRenameGroup')}</span>
            </button>
            <button 
              onClick={handleGroup} 
@@ -617,23 +782,39 @@ const selectedIdsArray = Array.from(selectedIds);
            >
              <Folder className="w-3 h-3" /> {t('editorGroupBtn')}
            </button>
+           <button 
+             onClick={() => setShowDeleteConfirm(true)} 
+             disabled={selectedIds.size === 0 || isAnyLocked}
+             className="text-xs flex items-center gap-1 opacity-60 hover:opacity-100 disabled:opacity-20 transition-opacity px-2 py-1 bg-black/5 dark:bg-white/5 rounded active:scale-95 cursor-pointer hover:text-red-500"
+             title={t('editorDelete', 'Delete')} aria-label={t('editorDelete', 'Delete')}
+           >
+             <Trash2 className="w-3 h-3" />
+           </button>
          </div>
       </div>
-      
-      {pendingLayers && (
-         <div className="flex gap-2 mb-2 p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg shadow-sm">
-           <button onClick={() => commitSvgChange(pendingLayers, true)} className="flex-1 py-1.5 flex items-center justify-center gap-2 text-xs font-bold rounded bg-emerald-500 hover:bg-emerald-600 text-white transition-all active:scale-95">
-              <Save className="w-3 h-3" /> {t('editorApplyBtn')}
-           </button>
-           <button onClick={() => { setPendingLayers(null); setSelectedIds(new Set()); }} className="px-3 py-1.5 flex items-center justify-center gap-2 text-xs font-bold rounded bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 transition-all active:scale-95">
-              <X className="w-3 h-3" />
-           </button>
-         </div>
-      )}
       
       <div className="flex flex-col gap-0.5 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar select-none group/layerlist">
          {renderNodes(activeLayers)}
       </div>
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="w-full max-w-sm bg-white dark:bg-[#111] border border-black/10 dark:border-white/10 rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold mb-2 text-red-500">{t('editorDeleteConfirmTitle', 'Delete Item?')}</h3>
+            <p className="text-sm mb-6 opacity-70">
+               {t('editorDeleteConfirmMsg', 'Are you sure you want to delete the selected items? This cannot be undone automatically.')}
+            </p>
+            <div className="flex gap-3 justify-end">
+               <button onClick={() => setShowDeleteConfirm(false)} className="px-4 py-2 text-sm font-medium rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200 active:scale-95">
+                 {t('cancelBtn', 'Cancel')}
+               </button>
+               <button onClick={handleDelete} className="px-4 py-2 text-sm font-bold rounded-lg bg-red-500 hover:bg-red-600 text-white transition-all duration-200 active:scale-95">
+                 {t('confirmBtn', 'Confirm')}
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

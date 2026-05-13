@@ -2,8 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Upload, Image as ImageIcon, Loader2, AlertCircle, Sun, Moon, Download, Globe, Undo, Redo, Archive, Trash2, Settings, Zap, List, ChevronDown, RefreshCw, ZoomIn, ZoomOut, Maximize, GripVertical, Plus, Edit2 } from 'lucide-react';
 import JSZip from 'jszip';
+import { removeBackground } from "@imgly/background-removal";
 import { GoogleGenAI } from "@google/genai";
 import { LayerEditor } from './LayerEditor';
+import { ProcessingTerminal } from './ProcessingTerminal';
 
 declare global {
   interface Window {
@@ -34,23 +36,22 @@ interface UploadItem {
   historyIndex: number;
 }
 
-const SYSTEM_INSTRUCTION = (quality: string) => `You are a world-class, elite vector graphics AI engine. Your sole objective is to surgically trace the provided raster image and reconstruct it into a production-ready, mathematically pristine SVG.
+const SYSTEM_INSTRUCTION = (quality: string) => `You are an elite vector graphics extraction engine. Your sole objective is to output a mathematically precise structural SVG tailored exclusively for downstream script-based modifications (upscaling, background removal, smart cropping, recoloring).
 
 CRITICAL DIRECTIVES:
-1. MATHEMATICAL PRECISION: Trace all shapes with exact geometric mastery. Completely eliminate wobbly, shaky, or imprecise lines. Employ minimal, mathematically optimal Bezier curves and utilize geometric primitives (<circle>, <rect>, <polygon>) wherever structurally sound.
-2. FLAWLESS PATH LOGIC: You MUST use proper SVG fill rules (e.g., \`fill-rule="evenodd"\`) to elegantly handle compound paths, donut-holes, and precise cutouts. Do NOT use crude overlapping patches.
-3. TRANSPARENT BACKGROUND: ABOLISH solid background rectangles. The overarching canvas MUST be transparent. Only include backgrounds if they are inextricably part of the logo's intrinsic design.
-4. SEMANTIC HIERARCHY & ACCESSIBILITY: Group structurally related paths within \`<g>\` tags. Maintain absolute strictness with z-depth layering, from back (bottom) to front (top). You MUST include proper accessibility attributes on the root \`<svg>\` element (e.g. \`role="img"\`, \`aria-label="Image description"\`) and provide a descriptive \`<title>\` and \`<desc>\` element right inside the SVG root to ensure screen-reader compatibility.
-5. MANDATORY LAYER NAMING: EVERY distinct semantic part MUST be wrapped in a \`<g>\` tag containing a highly descriptive \`data-name="Your Element Name"\`. Example: <g data-name="Inner Ring">. This is NON-NEGOTIABLE. Without this, the UI layer editor will catastrophically fail.
-6. SCALABILITY: Define a precise, tight bounding \`viewBox\` (e.g., \`viewBox="0 0 500 500"\`). Do NOT hardcode fixed pixel width/height without an accompanying viewBox.
-7. DETAIL PROFILE [${quality.toUpperCase()}]: ${
-  quality === 'minimal' ? 'Extremist Minimalism. Vigorously simplify shapes, ruthlessly flatten gradients into solid colors, and eradicate micro-noise. Output the absolute lowest possible anchor count while retaining core recognition.' 
-  : quality === 'optimized' ? 'Supreme Optimization. Strike an immaculate balance between high visual fidelity and lean, clean path data.' 
-  : 'Hyper-Fidelity. Yield a flawless, pixel-perfect, exhaustively detailed vector tracing. Maintain razor-sharp anchor placement and meticulous curve fitting.'
+1. PURE STRUCTURAL VECTORIZATION: Output raw structural paths. Focus on extracting exact shapes, silhouettes, and boundaries. Stop worrying about semantic grouping or human-readable layer names.
+2. FLAT DOM TREE: Avoid unnecessary nesting. Output a flat list of <path> elements inside the root <svg> where possible.
+3. MATHEMATICAL PRECISION OVER SEMANTICS: Do NOT add <title>, <desc>, aria-labels, or role attributes. This output is for machine processing, not for web rendering. 
+4. FLAT STYLING: Enforce inline attributes (\`fill\` or \`stroke\`) clearly on each path. Avoid messy global <style> tags, <use> tags, or <defs> unless completely necessary for gradients.
+5. NO BACKGROUND RECTANGLES: Ensure the background canvas is completely transparent. Do NOT draw a bounding background <rect>.
+6. TIGHT BOUNDS: Ensure the \`viewBox\` is tightly cropped to the actual geometry.
+7. TARGET DETAIL: ${
+  quality === 'minimal' ? 'Extract minimal, crucial silhouettes.' 
+  : quality === 'optimized' ? 'Extract a clean structural trace with balanced complexity.' 
+  : 'Extract highly-detailed structural contours.'
 }
-8. CLEAN STYLING: Enforce inline attributes (\`fill="..."\`, \`stroke="..."\`). FORBID the use of global \`<style>\` blocks that pollute the DOM. Guarantee all numerical coordinates are pristine and valid.
-9. ABSOLUTE ZERO FORMATTING: Output EXCLUSIVELY raw, valid XML/SVG code. Start with \`<svg>\` and end with \`</svg>\`. ZERO markdown (\`\`\`svg). ZERO conversational text. ZERO HTML wrappers. Your response must be parsed immediately by a strict XML parser.
-Failure to follow these directives will result in system failure. Act as the ultimate vectorization compiler.`;
+8. ABSOLUTE ZERO FORMATTING: Output EXCLUSIVELY raw, valid XML/SVG code. Start with <svg> and end with </svg>. ZERO markdown (\`\`\`svg). ZERO conversational text.
+Act purely as an extraction compiler for automated downstream manipulation.`;
 
 const processImageFrontend = async (file: File, colorQuant: string): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -65,13 +66,13 @@ const processImageFrontend = async (file: File, colorQuant: string): Promise<str
       
       let width = img.width;
       let height = img.height;
-      if (width > 800 || height > 800) {
+      if (width > 512 || height > 512) {
         if (width > height) {
-          height = Math.round((height * 800) / width);
-          width = 800;
+          height = Math.round((height * 512) / width);
+          width = 512;
         } else {
-          width = Math.round((width * 800) / height);
-          height = 800;
+          width = Math.round((width * 512) / height);
+          height = 512;
         }
       }
       
@@ -114,13 +115,14 @@ export default function App() {
   const [isDark, setIsDark] = useState(false);
   const [queueStats, setQueueStats] = useState({ pending: 0, processing: 0, completed: 0, failed: 0, total: 0 });
   
-  const [simplifyPaths, setSimplifyPaths] = useState(true);
+  const [simplifyPaths, setSimplifyPaths] = useState(false);
   const [removeMetadata, setRemoveMetadata] = useState(false);
-  const [pathFitting, setPathFitting] = useState(true);
-  const [strokeOpt, setStrokeOpt] = useState(true);
+  const [pathFitting, setPathFitting] = useState(false);
+  const [strokeOpt, setStrokeOpt] = useState(false);
   const [highlightedLayerIds, setHighlightedLayerIds] = useState<string[]>([]);
   const [colorQuant, setColorQuant] = useState(false);
   const [advancedSVGO, setAdvancedSVGO] = useState(false);
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [customWidth, setCustomWidth] = useState<number>(2000);
   const [customHeight, setCustomHeight] = useState<number>(2000);
   const [useMultiplier, setUseMultiplier] = useState<boolean>(false);
@@ -313,9 +315,12 @@ export default function App() {
       const resultBase64 = await processImageFrontend(item.file, colorQuant.toString());
       
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const promptStr = "Convert this raster image to a mathematically precise vector SVG following all system instructions exactly. Ensure the SVG includes semantic <title> and <desc> tags for accessibility, is intelligently layered with descriptive `data-name` attributes on <g> tags, and perfectly captures the visual essence and layout of the input graphic without any background rectangle. \n\nCRITICAL: The output SVG MUST have all paths filled exclusively with white (fill=\"#FFFFFF\") to serve as a pure white silhouette on a transparent background, matching the MVP requirement. If there are strokes, make them white too.";
+      const promptStr = "Convert this raster image into a structurally perfect SVG following ALL system directives. Do NOT add accessibility labels, descriptions, titles or semantic groups. Keep the DOM as flat as possible with pure paths. \n"
+        + (forceWhite 
+          ? "\nCRITICAL: The output SVG MUST have all paths filled exclusively with white (fill=\"#FFFFFF\") to serve as a pure white silhouette on a transparent background. If there are strokes, make them white too."
+          : "\nPerfectly capture the visual essence, colors, and layout of the input graphic without any background rectangle. Extract the proper stroke and fill colors as accurately as possible.");
       
-      const responseStream = await ai.models.generateContentStream({
+      const response = await ai.models.generateContent({
         model: model,
         contents: [
           {
@@ -332,13 +337,14 @@ export default function App() {
         }
       });
       
-      let rawSvg = "";
-      for await (const chunk of responseStream) {
-        if (chunk.text) {
-          rawSvg += chunk.text;
-        }
-      }
+      let rawSvg = response.text || "";
       
+      // Post-process to remove markdown formatting if AI still outputs it
+      rawSvg = rawSvg.replace(/^```(xml|svg)?\n?/i, '').replace(/\n?```$/i, '').trim();
+      
+      // Fix unescaped ampersands
+      rawSvg = rawSvg.replace(/&(?!amp;|lt;|gt;|quot;|apos;|#\d+;|#[xX][0-9a-fA-F]+;)/g, '&amp;');
+
       if (!rawSvg) {
         throw new Error("Gemini generated an empty response or hit a safety filter. Please try another image.");
       }
@@ -376,7 +382,22 @@ export default function App() {
       }
 
       const optData = await optResponse.json();
-      updateItemSuccess(itemId, resultBase64, optData.svgBase64);
+
+      let finalPngBase64 = resultBase64;
+      try {
+         const cleanBlob = await removeBackground(item.file);
+         const reader = new FileReader();
+         reader.readAsDataURL(cleanBlob);
+         await new Promise(r => reader.onloadend = r);
+         const resStr = reader.result as string;
+         if (resStr.includes(',')) {
+            finalPngBase64 = resStr.split(',')[1];
+         }
+      } catch (e) {
+         console.warn("Background removal failed:", e);
+      }
+
+      updateItemSuccess(itemId, finalPngBase64, optData.svgBase64);
 
     } catch (err: any) {
        setItems(prev => prev.map(i => i.id === itemId ? { ...i, status: 'failed', error: err.message || t('errorProcess') } : i));
@@ -458,10 +479,12 @@ export default function App() {
   const [previewSvgStr, setPreviewSvgStr] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
+  const activeItemSvg = items.find(i => i.id === activeItemId)?.svgBase64;
+  const activeItemStatus = items.find(i => i.id === activeItemId)?.status;
+  
   useEffect(() => {
      const runPreview = async () => {
-         const item = items.find(i => i.id === activeItemId);
-         if (!item?.svgBase64 || item.status !== 'completed') {
+         if (!activeItemSvg || activeItemStatus !== 'completed') {
             setPreviewSvgStr(null);
             return;
          }
@@ -471,13 +494,13 @@ export default function App() {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ 
-                svgBase64: item.svgBase64, 
+                svgBase64: activeItemSvg, 
                 options: { simplifyPaths, removeMetadata, pathFitting, strokeOpt, colorQuant } 
               }),
             });
             if (response.ok) {
                const data = await response.json();
-               if (data.svgBase64 !== item.svgBase64) {
+               if (data.svgBase64 !== activeItemSvg) {
                  setPreviewSvgStr(data.svgBase64);
                } else {
                  setPreviewSvgStr(null); // No changes detected
@@ -492,7 +515,7 @@ export default function App() {
      };
      const t = setTimeout(runPreview, 500);
      return () => clearTimeout(t);
-  }, [activeItemId, items, simplifyPaths, removeMetadata, pathFitting, strokeOpt, colorQuant]);
+  }, [activeItemSvg, activeItemStatus, simplifyPaths, removeMetadata, pathFitting, strokeOpt, colorQuant]);
 
   const handleApplyPreview = async (itemId: string) => {
      if (!previewSvgStr) return;
@@ -1145,12 +1168,15 @@ export default function App() {
               </div>
 
                <div className={`p-5 rounded-2xl border ${themeClasses.borderPrimary} ${themeClasses.bgSecondary} flex flex-col gap-5 shadow-sm`}>
-                 <div className="flex justify-between items-center">
-                   <h3 className={`text-[10px] uppercase tracking-[0.2em] font-bold ${themeClasses.textMuted}`}>{t('globalConfig')}</h3>
-                   <Settings className={`w-4 h-4 ${themeClasses.textMuted}`} />
-                 </div>
+                 <button onClick={() => setIsConfigOpen(!isConfigOpen)} aria-expanded={isConfigOpen} aria-controls="global-config-panel" className="flex justify-between items-center w-full focus:outline-none focus:ring-2 focus:ring-emerald-500/50 rounded-lg group xl:p-3 xl:-mx-3 p-2 -mx-2 hover:bg-black/10 dark:hover:bg-white/10 transition-all duration-200">
+                   <h3 className={`text-[10px] xl:text-[11px] uppercase tracking-[0.2em] font-bold ${themeClasses.textMuted} group-hover:text-emerald-500 group-hover:brightness-110 transition-colors`}>{t('globalConfig')}</h3>
+                   <div className="flex items-center gap-2">
+                      <Settings className={`w-4 h-4 ${themeClasses.textMuted}`} />
+                      <ChevronDown className={`w-4 h-4 ${themeClasses.textMuted} transition-transform duration-200 ${isConfigOpen ? 'rotate-180' : ''}`} />
+                   </div>
+                 </button>
                  
-                 <div className="space-y-4">
+                 <div id="global-config-panel" className={`space-y-4 ${isConfigOpen ? 'block' : 'hidden'}`}>
                     {!user ? (
                       <button onClick={handleGoogleLogin} className="w-full flex justify-center items-center gap-2 py-2 text-xs font-semibold rounded-lg bg-[#4285F4] text-white hover:bg-[#3367D6] transition-all duration-200 active:scale-95">
                         <Globe className="w-4 h-4" /> {t('signInGoogle')}
@@ -1480,9 +1506,7 @@ export default function App() {
                           {activeItem.status === 'processing' ? (
                              <div className="flex flex-col items-center justify-center gap-6 z-10 bg-black/40 backdrop-blur-md absolute inset-0 text-white transition-opacity duration-300">
                                 <svg className="w-12 h-12 text-emerald-500 animate-spin drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]" viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" strokeWidth="4" className="opacity-20" /><path d="M25 5 A 20 20 0 0 1 45 25" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeDasharray="31.4 31.4" className="opacity-80"><animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="1s" repeatCount="indefinite" /></path></svg>
-                                <div className="text-xs uppercase tracking-widest font-mono text-emerald-400 animate-pulse">
-                                   {progressStages[activeItem.progressStage]}
-                                </div>
+                                <ProcessingTerminal stageName={progressStages[activeItem.progressStage]} />
                              </div>
                           ) : activeItem.status === 'completed' && activeItem.svgBase64 ? (
                              <div className="w-full h-full flex items-center justify-center relative overflow-hidden" 
@@ -1668,6 +1692,7 @@ export default function App() {
         </div>
       )}
 
+{/* ARCHIVED FOR NOW AS WE FOCUS ON PURE FLAT STRUCTURAL GENERATION
                           <LayerEditor svgBase64={activeItem.svgBase64 || ''} itemId={activeItem.id} onUpdate={(itemId, newSvg) => updateItemSuccess(itemId, activeItem.pngBase64 || '', newSvg)} onHighlight={setHighlightedLayerIds} isDark={isDark} />
                           <h4 className="text-[10px] uppercase font-bold tracking-[0.2em] opacity-60 flex items-center gap-2 mt-4">
                              <List className="w-3 h-3" /> {t('semanticParts')}
@@ -1682,14 +1707,14 @@ export default function App() {
                                         setSelectedPart(item);
                                         setPartFillColor(item.props.fill || item.props.stroke || '#000000');
                                      }}
-                                     className={`text-[10px] font-mono px-3 py-1.5 rounded-full border transition-all duration-200 active:scale-95 cursor-crosshair
-                                        ${(hoveredLegend?.name === item.name || selectedPart?.name === item.name) ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10' : `${themeClasses.borderSecondary} ${themeClasses.textSemiMuted} hover:border-emerald-500/30 hover:opacity-100`}
-                                     `}
+                                     className={\`text-[10px] font-mono px-3 py-1.5 rounded-full border transition-all duration-200 active:scale-95 cursor-crosshair
+                                        \${(hoveredLegend?.name === item.name || selectedPart?.name === item.name) ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10' : \`\${themeClasses.borderSecondary} \${themeClasses.textSemiMuted} hover:border-emerald-500/30 hover:opacity-100\`}
+                                     \`}
                                   >
                                      {item.name}
                                   </button>
                                   {hoveredLegend?.name === item.name && selectedPart?.name !== item.name && (
-                                    <div className={`absolute z-50 top-full mt-2 left-1/2 -translate-x-1/2 w-max max-w-[220px] p-4 rounded-xl ${isDark ? 'bg-[#141414]' : 'bg-white'} dark:bg-[#0A0A0A] drop-shadow-2xl text-black dark:text-white border border-emerald-500/30 shadow-2xl pointer-events-none animate-in fade-in slide-in-from-top-1 duration-200`}>
+                                    <div className={\`absolute z-50 top-full mt-2 left-1/2 -translate-x-1/2 w-max max-w-[220px] p-4 rounded-xl \${isDark ? 'bg-[#141414]' : 'bg-white'} dark:bg-[#0A0A0A] drop-shadow-2xl text-black dark:text-white border border-emerald-500/30 shadow-2xl pointer-events-none animate-in fade-in slide-in-from-top-1 duration-200\`}>
                                       <div className="text-emerald-400 font-bold text-[11px] uppercase tracking-widest mb-2 border-b border-emerald-500/20 pb-2">{item.name}</div>
                                       <div className="flex flex-col gap-1.5 text-[10px] font-mono text-white/80">
                                         {Object.entries(item.props).map(([k,v]) => (
@@ -1708,18 +1733,19 @@ export default function App() {
                           <span className="text-[9px] opacity-40 font-mono">{t('legendAssist')}</span>
                           
                           {selectedPart && (
-                            <div className={`mt-2 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex flex-col sm:flex-row sm:items-center gap-4`}>
+                            <div className={\`mt-2 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex flex-col sm:flex-row sm:items-center gap-4\`}>
                                <div className="flex flex-col gap-1 flex-1">
                                  <span className="text-emerald-500 font-bold text-[11px] uppercase tracking-widest">{selectedPart.name}</span>
                                  <span className="text-[9px] opacity-60 uppercase font-mono">{t('adjustFillStroke')}</span>
                                </div>
                                <input type="color" value={partFillColor} onChange={e => setPartFillColor(e.target.value)} className="w-8 h-8 rounded border-none bg-transparent cursor-pointer outline-none" />
                                <div className="flex gap-2">
-                                  <button onClick={() => setSelectedPart(null)} className={`px-3 py-1.5 text-[10px] uppercase font-bold rounded-lg border ${themeClasses.borderSecondary} hover:bg-white/5 transition-all duration-200 active:scale-95`}>{t('cancelBtn')}</button>
+                                  <button onClick={() => setSelectedPart(null)} className={\`px-3 py-1.5 text-[10px] uppercase font-bold rounded-lg border \${themeClasses.borderSecondary} hover:bg-white/5 transition-all duration-200 active:scale-95\`}>{t('cancelBtn')}</button>
                                   <button onClick={() => { updateSvgElementColor(activeItem.id, selectedPart.name, partFillColor); setSelectedPart(null); }} className="px-3 py-1.5 text-[10px] uppercase font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition-all duration-200 active:scale-95">{t('applyBtn')}</button>
                                </div>
                             </div>
                           )}
+*/}
                        </div>
                     )}
                  </div>

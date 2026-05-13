@@ -190,6 +190,9 @@ function cleanAndValidateSVG(rawSvg: string, options: OptimizeOptions = {}): str
     throw new SVGValidationError("Output did not look like an SVG.");
   }
 
+  // Pre-process common AI hallucinated unescaped XML characters
+  cleanSvg = cleanSvg.replace(/&(?!amp;|lt;|gt;|quot;|apos;|#[0-9]+;|#x[0-9a-fA-F]+;)/g, '&amp;');
+
   const validationResult = XMLValidator.validate(cleanSvg);
   if (validationResult !== true) {
     const errorDetails = (validationResult as any).err;
@@ -220,7 +223,9 @@ function cleanAndValidateSVG(rawSvg: string, options: OptimizeOptions = {}): str
 
   let result;
   try {
-    const overrides: any = {};
+    const overrides: any = {
+      collapseGroups: false,
+    };
     if (options.removeMetadata) {
       overrides.removeTitle = true;
       overrides.removeDesc = true;
@@ -256,6 +261,51 @@ function cleanAndValidateSVG(rawSvg: string, options: OptimizeOptions = {}): str
       },
       'convertStyleToAttrs',
       'inlineStyles',
+      {
+        name: 'removeBackground',
+        type: 'visitor',
+        fn: () => {
+          let svgWidth = 0;
+          let svgHeight = 0;
+          return {
+            element: {
+              enter: (node: any, parentNode: any) => {
+                if (node.name === 'svg') {
+                  if (node.attributes.width) svgWidth = parseFloat(node.attributes.width);
+                  if (node.attributes.height) svgHeight = parseFloat(node.attributes.height);
+                  if (node.attributes.viewBox) {
+                    const parts = node.attributes.viewBox.split(/[\s,]+/);
+                    if (parts.length === 4) {
+                      svgWidth = Math.max(svgWidth, parseFloat(parts[2]));
+                      svgHeight = Math.max(svgHeight, parseFloat(parts[3]));
+                    }
+                  }
+                }
+                
+                if (node.name === 'rect' && parentNode && parentNode.name === 'svg') {
+                  const w = node.attributes.width;
+                  const h = node.attributes.height;
+                  
+                  let isBg = false;
+                  if (w === '100%' && h === '100%') {
+                    isBg = true;
+                  } else if (svgWidth > 0 && svgHeight > 0) {
+                    const fw = parseFloat(w || '0');
+                    const fh = parseFloat(h || '0');
+                    if (fw >= svgWidth * 0.95 && fh >= svgHeight * 0.95) {
+                      isBg = true;
+                    }
+                  }
+                  
+                  if (isBg) {
+                    parentNode.children = parentNode.children.filter((n: any) => n !== node);
+                  }
+                }
+              }
+            }
+          };
+        }
+      }
     ];
 
     if (options.forceWhite === 'true' || options.forceWhite === true) {
