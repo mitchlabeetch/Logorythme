@@ -599,6 +599,11 @@ async function startServer() {
       appType: "spa",
     });
     app.use(vite.middlewares);
+    
+    // Fallback for routes not handled by Vite
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(process.cwd(), 'index.html'));
+    });
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
