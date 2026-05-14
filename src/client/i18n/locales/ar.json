@@ -1,17 +1,79 @@
 {
-  "app": {"title": "Logorythme", "tagline": "تحويل الشعارات إلى متجهات بالذكاء الاصطناعي", "version": "v2.0"},
-  "nav": {"home": "الرئيسية", "docs": "التوثيق", "language": "اللغة", "skipToContent": "تخطى إلى المحتوى"},
-  "upload": {"title": "رفع الشعار", "dragDrop": "اسحب وأفلت شعارك هنا", "or": "أو", "browse": "تصفح الملفات", "accept": "PNG, JPG, WEBP حتى 10 ميغابايت"},
-  "processing": {"status": "جارٍ المعالجة...", "stage": "الخطوة {{current}} من {{total}}", "stages": {"upload": "رفع", "analyze": "تحليل", "vectorize": "تحويل متجهي", "optimize": "تحسين", "render": "عرض", "complete": "اكتمل"}},
-  "preview": {"title": "معاينة", "downloadSvg": "تنزيل SVG", "downloadPng": "تنزيل PNG", "copySvg": "نسخ SVG", "copied": "تم النسخ!"},
-  "errors": {"generic": "حدث خطأ", "invalidFile": "صيغة الملف غير صالحة. يرجى رفع صورة PNG أو JPG أو WEBP.", "tooLarge": "الملف كبير جداً. الحد الأقصى 10 ميغابايت.", "processingFailed": "فشلت المعالجة. يرجى المحاولة مرة أخرى.", "retry": "إعادة المحاولة", "dismiss": "إغلاق"},
-  "model": {"label": "نموذج الذكاء الاصطناعي", "default": "تلقائي (الأفضل المتاح)", "recommended": "موصى به"},
-  "theme": {"light": "الوضع الفاتح", "dark": "الوضع الداكن"},
-  "quality": {"label": "الجودة", "high": "عالية", "optimized": "محسّنة", "minimal": "سريعة", "passed": "اجتازت فحص الجودة", "warning": "تحذير"},
+  "app": {
+    "title": "Logorythme",
+    "tagline": "تحويل الشعارات إلى متجهات بالذكاء الاصطناعي",
+    "version": "v2.0"
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "docs": "التوثيق",
+    "language": "اللغة",
+    "skipToContent": "تخطي إلى المحتوى الرئيسي"
+  },
+  "upload": {
+    "title": "رفع الشعار",
+    "dragDrop": "اسحب وأفلت شعارك هنا",
+    "or": "أو",
+    "browse": "تصفح الملفات",
+    "accept": "PNG, JPG, WEBP حتى 10 ميغابايت"
+  },
+  "processing": {
+    "status": "جارٍ المعالجة...",
+    "stage": "الخطوة {{current}} من {{total}}",
+    "stages": {
+      "upload": "رفع",
+      "analyze": "تحليل",
+      "vectorize": "تحويل متجهي",
+      "optimize": "تحسين",
+      "render": "عرض",
+      "complete": "اكتمل"
+    }
+  },
+  "preview": {
+    "title": "معاينة",
+    "downloadSvg": "تنزيل SVG",
+    "downloadPng": "تنزيل PNG",
+    "copySvg": "نسخ SVG",
+    "copied": "تم النسخ!"
+  },
+  "errors": {
+    "generic": "حدث خطأ",
+    "invalidFile": "صيغة الملف غير صالحة. يرجى رفع صورة PNG أو JPG أو WEBP.",
+    "tooLarge": "الملف كبير جداً. الحد الأقصى 10 ميغابايت.",
+    "processingFailed": "فشلت المعالجة. يرجى المحاولة مرة أخرى.",
+    "retry": "إعادة المحاولة",
+    "dismiss": "إغلاق"
+  },
+  "model": {
+    "label": "نموذج الذكاء الاصطناعي",
+    "default": "تلقائي (الأفضل المتاح)",
+    "recommended": "موصى به"
+  },
+  "theme": {
+    "light": "الوضع الفاتح",
+    "dark": "الوضع الداكن"
+  },
+  "quality": {
+    "label": "الجودة",
+    "high": "عالية",
+    "optimized": "محسّنة",
+    "minimal": "سريعة",
+    "passed": "اجتازت فحص الجودة",
+    "warning": "تحذير"
+  },
   "features": {
-    "ai": {"title": "ذكاء اصطناعي متعدد الموفرين", "desc": "Google وOpenAI وAnthropic"},
-    "crop": {"title": "قص ذكي", "desc": "تحديد الحدود بناءً على المحتوى"},
-    "pipeline": {"title": "مسار معالجة من 7 مراحل", "desc": "تنظيف، تحسين، تحقق"}
+    "ai": {
+      "title": "ذكاء اصطناعي متعدد الموفرين",
+      "desc": "Google وOpenAI وAnthropic"
+    },
+    "crop": {
+      "title": "قص ذكي",
+      "desc": "تحديد الحدود بناءً على المحتوى"
+    },
+    "pipeline": {
+      "title": "مسار معالجة من 7 مراحل",
+      "desc": "تنظيف، تحسين، تحقق"
+    }
   },
   "details": {
     "title": "تفاصيل المعالجة",

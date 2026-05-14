@@ -36,8 +36,12 @@ export function cleanupSVG(raw: string): string {
   // Remove HTML wrapper tags
   svg = svg.replace(/<\/?(?:html|body|head|code|pre)[^>]*>/gi, '');
 
-  // Remove comments
-  svg = svg.replace(COMMENT, '');
+  // Remove comments — loop to handle edge-cases where a replacement leaves a partial match
+  let prev: string;
+  do {
+    prev = svg;
+    svg = svg.replace(COMMENT, '');
+  } while (svg !== prev);
 
   // Remove CDATA
   svg = svg.replace(CDATA, '');
@@ -48,8 +52,11 @@ export function cleanupSVG(raw: string): string {
     svg = svgMatch[1];
   }
 
-  // Remove empty style blocks
-  svg = svg.replace(/<style\s*>\s*<\/style>/gi, '');
+  // Remove style blocks (empty and non-empty) — loop to handle nested edge-cases
+  do {
+    prev = svg;
+    svg = svg.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
+  } while (svg !== prev);
   svg = svg.replace(/<defs\s*>\s*<\/defs>/gi, '');
 
   // Remove empty groups
