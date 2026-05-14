@@ -15,10 +15,10 @@ import {
 } from './middleware/index.js';
 import { errorHandler, notFoundHandler } from './errors/middleware.js';
 import { createApiRouter } from './api/routes.js';
-import { config } from './config.js';
-import { isProduction } from './config.js';
+import { isProduction, config } from './config.js';
 import { ModelRegistry } from './ai/registry.js';
 import { FallbackOrchestrator } from './ai/orchestrator.js';
+import { logger } from './logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,6 +30,14 @@ export function createApp(): express.Application {
   // Singleton AI components — created once at startup to avoid per-request overhead
   const registry = new ModelRegistry();
   const orchestrator = new FallbackOrchestrator(registry);
+
+  // Warn if the settings password is the insecure default
+  if (config.settingsPassword === 'admin') {
+    logger.warn(
+      'SETTINGS_PASSWORD is set to the default value "admin". ' +
+      'Set a strong password via the SETTINGS_PASSWORD environment variable before deploying.',
+    );
+  }
 
   // 1. Security
   app.use(helmetMiddleware);

@@ -6,6 +6,9 @@
  *   DELETE /api/v1/settings/auth   — log out (revoke token)
  *   GET /api/v1/settings           — get masked current settings + active providers
  *   PUT /api/v1/settings           — update API keys and reinitialize providers
+ *
+ * Note: Sessions are stored in-process memory. Tokens are invalidated on server restart
+ * and do not propagate across multiple instances. Suitable for single-instance deployments.
  */
 
 import { Router } from 'express';
@@ -17,7 +20,7 @@ import type { FallbackOrchestrator } from '../ai/orchestrator.js';
 
 /** Session token -> expiry timestamp (ms) */
 const sessions = new Map<string, number>();
-const SESSION_DURATION_MS = 8 * 60 * 60 * 1000; // 8 hours
+const SESSION_DURATION_MS = 60 * 60 * 1000; // 1 hour
 
 function cleanExpiredSessions(): void {
   const now = Date.now();
@@ -39,11 +42,11 @@ function extractToken(req: Request): string | undefined {
   return undefined;
 }
 
-/** Mask an API key for display (show first 4 and last 4 chars) */
+/** Mask an API key for display — shows only the last 4 characters */
 function maskKey(value: string | undefined): string {
   if (!value) return '';
-  if (value.length <= 8) return '***';
-  return `${value.slice(0, 4)}${'*'.repeat(Math.min(value.length - 8, 8))}${value.slice(-4)}`;
+  if (value.length <= 4) return '***';
+  return `${'*'.repeat(Math.min(value.length - 4, 12))}${value.slice(-4)}`;
 }
 
 /** Build the masked settings object for display */
