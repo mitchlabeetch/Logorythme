@@ -50,10 +50,15 @@ export function useVectorizer(): UseVectorizerResult {
         let message = `Processing failed (${response.status})`;
         const contentType = response.headers.get('content-type') ?? '';
         if (contentType.includes('application/json')) {
-          const problem = await response
-            .json()
-            .catch(() => null) as { detail?: string; title?: string } | null;
-          message = problem?.detail || problem?.title || message;
+          const problem = await response.json().catch(() => null);
+          if (problem && typeof problem === 'object') {
+            const details = problem as { detail?: unknown; title?: unknown };
+            if (typeof details.detail === 'string' && details.detail.length > 0) {
+              message = details.detail;
+            } else if (typeof details.title === 'string' && details.title.length > 0) {
+              message = details.title;
+            }
+          }
         } else if (response.status === 404) {
           message = API_CONFIG_MESSAGE;
         }
