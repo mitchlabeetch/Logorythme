@@ -48,9 +48,9 @@ export function useVectorizer(): UseVectorizerResult {
 
       if (!response.ok) {
         let message = `Processing failed (${response.status})`;
-        const contentType = response.headers.get('content-type') ?? '';
-        if (contentType.includes('application/json')) {
-          let problem: unknown = undefined;
+        const contentType = response.headers.get('content-type');
+        if (contentType?.includes('application/json')) {
+          let problem: unknown | undefined;
           try {
             problem = await response.json();
           } catch {
