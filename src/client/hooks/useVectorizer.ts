@@ -50,7 +50,12 @@ export function useVectorizer(): UseVectorizerResult {
         let message = `Processing failed (${response.status})`;
         const contentType = response.headers.get('content-type') ?? '';
         if (contentType.includes('application/json')) {
-          const problem = await response.json().catch(() => null);
+          let problem: unknown = null;
+          try {
+            problem = await response.json();
+          } catch {
+            // Non-JSON error payload; keep generic status-based message.
+          }
           if (problem && typeof problem === 'object') {
             const details = problem as { detail?: unknown; title?: unknown };
             if (typeof details.detail === 'string' && details.detail.length > 0) {
