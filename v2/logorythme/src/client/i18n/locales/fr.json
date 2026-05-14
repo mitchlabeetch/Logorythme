@@ -1,0 +1,11 @@
+{
+  "app": {"title": "Logorythme", "tagline": "Vectorisation de logos par IA", "version": "v2.0"},
+  "nav": {"home": "Accueil", "docs": "Docs", "language": "Langue"},
+  "upload": {"title": "Telecharger un logo", "dragDrop": "Glissez-deposez votre logo ici", "or": "ou", "browse": "Parcourir", "accept": "PNG, JPG, WEBP jusqu'a 10 Mo"},
+  "processing": {"status": "Traitement en cours...", "stage": "Etape {{current}} sur {{total}}", "stages": {"upload": "Telechargement", "analyze": "Analyse", "vectorize": "Vectorisation", "optimize": "Optimisation", "render": "Rendu", "complete": "Termine"}},
+  "preview": {"title": "Apercu", "downloadSvg": "Telecharger SVG", "downloadPng": "Telecharger PNG", "copySvg": "Copier SVG", "copied": "Copie !"},
+  "errors": {"generic": "Une erreur est survenue", "invalidFile": "Format de fichier invalide", "tooLarge": "Fichier trop volumineux", "processingFailed": "Le traitement a echoue", "retry": "Reessayer", "dismiss": "Fermer"},
+  "model": {"label": "Modele IA", "default": "Auto (meilleur disponible)"},
+  "theme": {"light": "Mode clair", "dark": "Mode sombre"},
+  "quality": {"label": "Qualite", "high": "Elevee", "optimized": "Optimisee", "minimal": "Rapide"}
+}

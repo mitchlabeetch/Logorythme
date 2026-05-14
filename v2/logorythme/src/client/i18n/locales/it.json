@@ -1,0 +1,11 @@
+{
+  "app": {"title": "Logorythme", "tagline": "Vettorializzazione logo AI", "version": "v2.0"},
+  "nav": {"home": "Home", "docs": "Doc", "language": "Lingua"},
+  "upload": {"title": "Carica logo", "dragDrop": "Trascina il logo qui", "or": "o", "browse": "Sfoglia", "accept": "PNG, JPG, WEBP fino a 10MB"},
+  "processing": {"status": "Elaborazione...", "stage": "Fase {{current}} di {{total}}", "stages": {"upload": "Caricamento", "analyze": "Analisi", "vectorize": "Vettorializzazione", "optimize": "Ottimizzazione", "render": "Rendering", "complete": "Completato"}},
+  "preview": {"title": "Anteprima", "downloadSvg": "Scarica SVG", "downloadPng": "Scarica PNG", "copySvg": "Copia SVG", "copied": "Copiato!"},
+  "errors": {"generic": "Errore", "invalidFile": "Formato non valido", "tooLarge": "File troppo grande", "processingFailed": "Elaborazione fallita", "retry": "Riprova", "dismiss": "Chiudi"},
+  "model": {"label": "Modello AI", "default": "Auto"},
+  "theme": {"light": "Chiaro", "dark": "Scuro"},
+  "quality": {"label": "Qualita", "high": "Alta", "optimized": "Ottimizzata", "minimal": "Veloce"}
+}

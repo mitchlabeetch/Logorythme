@@ -1,0 +1,11 @@
+{
+  "app": {"title": "Logorythme", "tagline": "AI Logo", "version": "v2.0"},
+  "nav": {"home": "Trang chu", "docs": "Tai lieu", "language": "Ngon ngu"},
+  "upload": {"title": "Tai logo", "dragDrop": "Keo logo vao day", "or": "hoac", "browse": "Duyet", "accept": "PNG, JPG, WEBP toi da 10MB"},
+  "processing": {"status": "Dang xu ly...", "stage": "Buoc {{current}} / {{total}}", "stages": {"upload": "Tai len", "analyze": "Phan tich", "vectorize": "Vector hoa", "optimize": "Toi uu hoa", "render": "Ket xuat", "complete": "Hoan thanh"}},
+  "preview": {"title": "Xem truoc", "downloadSvg": "Tai SVG", "downloadPng": "Tai PNG", "copySvg": "Sao chep SVG", "copied": "Da sao chep!"},
+  "errors": {"generic": "Loi xay ra", "invalidFile": "Dinh dang khong hop le", "tooLarge": "Tap tin qua lon", "processingFailed": "Xu ly that bai", "retry": "Thu lai", "dismiss": "Dong"},
+  "model": {"label": "Mo hinh AI", "default": "Auto (tot nhat)"},
+  "theme": {"light": "Sang", "dark": "Toi"},
+  "quality": {"label": "Chat luong", "high": "Cao", "optimized": "Toi uu", "minimal": "Nhanh"}
+}

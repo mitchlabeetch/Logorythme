@@ -1,0 +1,11 @@
+{
+  "app": {"title": "Logorythme", "tagline": "KI-gestutzte Logo-Vektorisierung", "version": "v2.0"},
+  "nav": {"home": "Start", "docs": "Dokumentation", "language": "Sprache"},
+  "upload": {"title": "Logo hochladen", "dragDrop": "Logo hier ablegen", "or": "oder", "browse": "Durchsuchen", "accept": "PNG, JPG, WEBP bis 10 MB"},
+  "processing": {"status": "Verarbeitung...", "stage": "Schritt {{current}} von {{total}}", "stages": {"upload": "Hochladen", "analyze": "Analysieren", "vectorize": "Vektorisieren", "optimize": "Optimieren", "render": "Rendern", "complete": "Abgeschlossen"}},
+  "preview": {"title": "Vorschau", "downloadSvg": "SVG herunterladen", "downloadPng": "PNG herunterladen", "copySvg": "SVG kopieren", "copied": "Kopiert!"},
+  "errors": {"generic": "Ein Fehler ist aufgetreten", "invalidFile": "Ungultiges Dateiformat", "tooLarge": "Datei zu gross", "processingFailed": "Verarbeitung fehlgeschlagen", "retry": "Wiederholen", "dismiss": "Schliessen"},
+  "model": {"label": "KI-Modell", "default": "Auto (bestes verfugbares)"},
+  "theme": {"light": "Heller Modus", "dark": "Dunkler Modus"},
+  "quality": {"label": "Qualitat", "high": "Hoch", "optimized": "Optimiert", "minimal": "Schnell"}
+}

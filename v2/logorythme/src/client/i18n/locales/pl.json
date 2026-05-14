@@ -1,0 +1,11 @@
+{
+  "app": {"title": "Logorythme", "tagline": "Wektoryzacja logo AI", "version": "v2.0"},
+  "nav": {"home": "Strona glowna", "docs": "Dokumentacja", "language": "Jezyk"},
+  "upload": {"title": "Wgraj logo", "dragDrop": "Upusc logo tutaj", "or": "lub", "browse": "Przegladaj", "accept": "PNG, JPG, WEBP do 10MB"},
+  "processing": {"status": "Przetwarzanie...", "stage": "Etap {{current}} z {{total}}", "stages": {"upload": "Wgrywanie", "analyze": "Analiza", "vectorize": "Wektoryzacja", "optimize": "Optymalizacja", "render": "Renderowanie", "complete": "Gotowe"}},
+  "preview": {"title": "Podglad", "downloadSvg": "Pobierz SVG", "downloadPng": "Pobierz PNG", "copySvg": "Kopiuj SVG", "copied": "Skopiowano!"},
+  "errors": {"generic": "Wystapil blad", "invalidFile": "Nieprawidlowy format", "tooLarge": "Plik za duzy", "processingFailed": "Przetwarzanie nie powiodlo sie", "retry": "Sprobuj ponownie", "dismiss": "Zamknij"},
+  "model": {"label": "Model AI", "default": "Auto (najlepszy)"},
+  "theme": {"light": "Jasny", "dark": "Ciemny"},
+  "quality": {"label": "Jakosc", "high": "Wysoka", "optimized": "Zoptymalizowana", "minimal": "Szybka"}
+}

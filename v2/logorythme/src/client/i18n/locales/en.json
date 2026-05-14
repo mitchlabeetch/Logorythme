@@ -1,0 +1,76 @@
+{
+  "app": {
+    "title": "Logorythme",
+    "tagline": "AI-Powered Logo Vectorization",
+    "version": "v2.0"
+  },
+  "nav": {
+    "home": "Home",
+    "docs": "Docs",
+    "language": "Language"
+  },
+  "upload": {
+    "title": "Upload Logo",
+    "dragDrop": "Drag and drop your logo here",
+    "or": "or",
+    "browse": "Browse files",
+    "accept": "PNG, JPG, WEBP up to 10MB"
+  },
+  "processing": {
+    "status": "Processing...",
+    "stage": "Stage {{current}} of {{total}}",
+    "stages": {
+      "upload": "Uploading",
+      "analyze": "Analyzing",
+      "vectorize": "Vectorizing",
+      "optimize": "Optimizing",
+      "render": "Rendering",
+      "complete": "Complete"
+    }
+  },
+  "preview": {
+    "title": "Preview",
+    "downloadSvg": "Download SVG",
+    "downloadPng": "Download PNG",
+    "copySvg": "Copy SVG",
+    "copied": "Copied!"
+  },
+  "errors": {
+    "generic": "An error occurred",
+    "invalidFile": "Invalid file format. Please upload a PNG, JPG, or WEBP image.",
+    "tooLarge": "File too large. Maximum size is 10MB.",
+    "processingFailed": "Processing failed. Please try again.",
+    "retry": "Retry",
+    "dismiss": "Dismiss"
+  },
+  "model": {
+    "label": "AI Model",
+    "default": "Auto (best available)",
+    "recommended": "Recommended"
+  },
+  "theme": {
+    "light": "Switch to light mode",
+    "dark": "Switch to dark mode"
+  },
+  "quality": {
+    "label": "Quality",
+    "high": "High",
+    "optimized": "Optimized",
+    "minimal": "Fast",
+    "passed": "Quality Check Passed",
+    "warning": "Warning"
+  },
+  "features": {
+    "ai": { "title": "Multi-Provider AI", "desc": "Google, OpenAI, Anthropic" },
+    "crop": { "title": "Smart Crop", "desc": "Content-aware bounding" },
+    "pipeline": { "title": "7-Stage Pipeline", "desc": "Cleanup, optimize, validate" }
+  },
+  "details": {
+    "title": "Processing Details",
+    "model": "Model",
+    "provider": "Provider",
+    "time": "Time",
+    "fillRatio": "Fill Ratio",
+    "elements": "Elements"
+  }
+}

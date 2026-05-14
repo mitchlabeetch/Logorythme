@@ -1,0 +1,11 @@
+{
+  "app": {"title": "Logorythme", "tagline": "AI Logo Vektorlestirme", "version": "v2.0"},
+  "nav": {"home": "Ana Sayfa", "docs": "Dokumantasyon", "language": "Dil"},
+  "upload": {"title": "Logo Yükle", "dragDrop": "Logoyu buraya surukle", "or": "veya", "browse": "Gözat", "accept": "PNG, JPG, WEBP max 10MB"},
+  "processing": {"status": "Isleniyor...", "stage": "Asama {{current}} / {{total}}", "stages": {"upload": "Yukleniyor", "analyze": "Analiz", "vectorize": "Vektorlestirme", "optimize": "Optimizasyon", "render": "Render", "complete": "Tamamlandi"}},
+  "preview": {"title": "Onizleme", "downloadSvg": "SVG Indir", "downloadPng": "PNG Indir", "copySvg": "SVG Kopyala", "copied": "Kopyalandi!"},
+  "errors": {"generic": "Hata olustu", "invalidFile": "Gecersiz format", "tooLarge": "Dosya cok buyuk", "processingFailed": "Islem basarisiz", "retry": "Tekrar dene", "dismiss": "Kapat"},
+  "model": {"label": "AI Modeli", "default": "Auto (en iyi)"},
+  "theme": {"light": "Acik", "dark": "Koyu"},
+  "quality": {"label": "Kalite", "high": "Yuksek", "optimized": "Optimize", "minimal": "Hizli"}
+}
