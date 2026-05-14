@@ -1,0 +1,24 @@
+{
+  "app": {"title": "Logorythme", "tagline": "Vector hóa logo bằng AI", "version": "v2.0"},
+  "nav": {"home": "Trang chủ", "docs": "Tài liệu", "language": "Ngôn ngữ", "skipToContent": "Chuyển tới nội dung chính"},
+  "upload": {"title": "Tải logo lên", "dragDrop": "Kéo logo vào đây", "or": "hoặc", "browse": "Duyệt tệp", "accept": "PNG, JPG, WEBP tối đa 10MB"},
+  "processing": {"status": "Đang xử lý...", "stage": "Bước {{current}} / {{total}}", "stages": {"upload": "Tải lên", "analyze": "Phân tích", "vectorize": "Vector hóa", "optimize": "Tối ưu hóa", "render": "Kết xuất", "complete": "Hoàn thành"}},
+  "preview": {"title": "Xem trước", "downloadSvg": "Tải SVG", "downloadPng": "Tải PNG", "copySvg": "Sao chép SVG", "copied": "Đã sao chép!"},
+  "errors": {"generic": "Đã xảy ra lỗi", "invalidFile": "Định dạng tệp không hợp lệ. Vui lòng tải lên ảnh PNG, JPG hoặc WEBP.", "tooLarge": "Tệp quá lớn. Kích thước tối đa là 10MB.", "processingFailed": "Xử lý thất bại. Vui lòng thử lại.", "retry": "Thử lại", "dismiss": "Đóng"},
+  "model": {"label": "Mô hình AI", "default": "Tự động (tốt nhất hiện có)", "recommended": "Được đề xuất"},
+  "theme": {"light": "Chế độ sáng", "dark": "Chế độ tối"},
+  "quality": {"label": "Chất lượng", "high": "Cao", "optimized": "Tối ưu", "minimal": "Nhanh", "passed": "Kiểm tra chất lượng đạt", "warning": "Cảnh báo"},
+  "features": {
+    "ai": {"title": "AI đa nhà cung cấp", "desc": "Google, OpenAI, Anthropic"},
+    "crop": {"title": "Cắt thông minh", "desc": "Xác định vùng nội dung tự động"},
+    "pipeline": {"title": "Quy trình 7 giai đoạn", "desc": "Làm sạch, tối ưu, kiểm tra"}
+  },
+  "details": {
+    "title": "Chi tiết xử lý",
+    "model": "Mô hình",
+    "provider": "Nhà cung cấp",
+    "time": "Thời gian",
+    "fillRatio": "Tỷ lệ lấp đầy",
+    "elements": "Số phần tử"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "app": {"title": "Logorythme", "tagline": "AI驱动的Logo矢量化", "version": "v2.0"},
+  "nav": {"home": "首页", "docs": "文档", "language": "语言", "skipToContent": "跳转到主要内容"},
+  "upload": {"title": "上传Logo", "dragDrop": "将Logo拖放至此处", "or": "或", "browse": "浏览文件", "accept": "PNG、JPG、WEBP，最大10MB"},
+  "processing": {"status": "处理中...", "stage": "第{{current}}步 / 共{{total}}步", "stages": {"upload": "上传", "analyze": "分析", "vectorize": "矢量化", "optimize": "优化", "render": "渲染", "complete": "完成"}},
+  "preview": {"title": "预览", "downloadSvg": "下载SVG", "downloadPng": "下载PNG", "copySvg": "复制SVG", "copied": "已复制！"},
+  "errors": {"generic": "发生错误", "invalidFile": "文件格式无效，请上传PNG、JPG或WEBP图片。", "tooLarge": "文件过大，最大允许10MB。", "processingFailed": "处理失败，请重试。", "retry": "重试", "dismiss": "关闭"},
+  "model": {"label": "AI模型", "default": "自动（最优可用）", "recommended": "推荐"},
+  "theme": {"light": "切换至浅色模式", "dark": "切换至深色模式"},
+  "quality": {"label": "质量", "high": "高", "optimized": "优化", "minimal": "快速", "passed": "质量检查通过", "warning": "警告"},
+  "features": {
+    "ai": {"title": "多供应商AI", "desc": "Google、OpenAI、Anthropic"},
+    "crop": {"title": "智能裁剪", "desc": "基于内容的边界识别"},
+    "pipeline": {"title": "七阶段流水线", "desc": "清理、优化、验证"}
+  },
+  "details": {
+    "title": "处理详情",
+    "model": "模型",
+    "provider": "供应商",
+    "time": "时间",
+    "fillRatio": "填充率",
+    "elements": "元素数"
+  }
+}

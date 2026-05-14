@@ -1,0 +1,24 @@
+{
+  "app": {"title": "Logorythme", "tagline": "AIによるロゴのベクター化", "version": "v2.0"},
+  "nav": {"home": "ホーム", "docs": "ドキュメント", "language": "言語", "skipToContent": "メインコンテンツへスキップ"},
+  "upload": {"title": "ロゴをアップロード", "dragDrop": "ここにロゴをドラッグ＆ドロップ", "or": "または", "browse": "ファイルを選択", "accept": "PNG、JPG、WEBP（最大10MB）"},
+  "processing": {"status": "処理中...", "stage": "{{total}}ステップ中{{current}}ステップ目", "stages": {"upload": "アップロード中", "analyze": "解析中", "vectorize": "ベクター化中", "optimize": "最適化中", "render": "レンダリング中", "complete": "完了"}},
+  "preview": {"title": "プレビュー", "downloadSvg": "SVGをダウンロード", "downloadPng": "PNGをダウンロード", "copySvg": "SVGをコピー", "copied": "コピーしました！"},
+  "errors": {"generic": "エラーが発生しました", "invalidFile": "無効なファイル形式です。PNG、JPG、またはWEBP画像をアップロードしてください。", "tooLarge": "ファイルが大きすぎます。最大サイズは10MBです。", "processingFailed": "処理に失敗しました。もう一度お試しください。", "retry": "再試行", "dismiss": "閉じる"},
+  "model": {"label": "AIモデル", "default": "自動（最適なモデルを使用）", "recommended": "おすすめ"},
+  "theme": {"light": "ライトモードに切り替え", "dark": "ダークモードに切り替え"},
+  "quality": {"label": "品質", "high": "高品質", "optimized": "最適化", "minimal": "高速", "passed": "品質チェック合格", "warning": "警告"},
+  "features": {
+    "ai": {"title": "マルチプロバイダーAI", "desc": "Google、OpenAI、Anthropic"},
+    "crop": {"title": "スマートクロップ", "desc": "コンテンツ認識による境界検出"},
+    "pipeline": {"title": "7段階パイプライン", "desc": "クリーンアップ、最適化、検証"}
+  },
+  "details": {
+    "title": "処理の詳細",
+    "model": "モデル",
+    "provider": "プロバイダー",
+    "time": "処理時間",
+    "fillRatio": "塗りつぶし率",
+    "elements": "要素数"
+  }
+}

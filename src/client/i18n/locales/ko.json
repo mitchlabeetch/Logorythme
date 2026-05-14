@@ -1,0 +1,24 @@
+{
+  "app": {"title": "Logorythme", "tagline": "AI 기반 로고 벡터화", "version": "v2.0"},
+  "nav": {"home": "홈", "docs": "문서", "language": "언어", "skipToContent": "본문으로 건너뛰기"},
+  "upload": {"title": "로고 업로드", "dragDrop": "로고를 여기에 드래그 앤 드롭하세요", "or": "또는", "browse": "파일 찾아보기", "accept": "PNG, JPG, WEBP (최대 10MB)"},
+  "processing": {"status": "처리 중...", "stage": "{{total}}단계 중 {{current}}단계", "stages": {"upload": "업로드 중", "analyze": "분석 중", "vectorize": "벡터화 중", "optimize": "최적화 중", "render": "렌더링 중", "complete": "완료"}},
+  "preview": {"title": "미리보기", "downloadSvg": "SVG 다운로드", "downloadPng": "PNG 다운로드", "copySvg": "SVG 복사", "copied": "복사되었습니다!"},
+  "errors": {"generic": "오류가 발생했습니다", "invalidFile": "잘못된 파일 형식입니다. PNG, JPG 또는 WEBP 이미지를 업로드하세요.", "tooLarge": "파일이 너무 큽니다. 최대 크기는 10MB입니다.", "processingFailed": "처리에 실패했습니다. 다시 시도해 주세요.", "retry": "재시도", "dismiss": "닫기"},
+  "model": {"label": "AI 모델", "default": "자동 (최적 모델)", "recommended": "추천"},
+  "theme": {"light": "밝은 모드로 전환", "dark": "어두운 모드로 전환"},
+  "quality": {"label": "품질", "high": "높음", "optimized": "최적화", "minimal": "빠름", "passed": "품질 검사 통과", "warning": "경고"},
+  "features": {
+    "ai": {"title": "멀티 프로바이더 AI", "desc": "Google, OpenAI, Anthropic"},
+    "crop": {"title": "스마트 크롭", "desc": "컨텐츠 인식 경계 검출"},
+    "pipeline": {"title": "7단계 파이프라인", "desc": "정리, 최적화, 검증"}
+  },
+  "details": {
+    "title": "처리 세부 정보",
+    "model": "모델",
+    "provider": "프로바이더",
+    "time": "처리 시간",
+    "fillRatio": "채우기 비율",
+    "elements": "요소 수"
+  }
+}
