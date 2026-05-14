@@ -13,7 +13,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "ai": "^4.0.0",
+    "ai": "^6.0.182",
     "@ai-sdk/openai": "^1.0.0",
     "@ai-sdk/anthropic": "^1.0.0",
     "@ai-sdk/google": "^1.0.0",
@@ -48,7 +48,7 @@
     "cookie-parser": "^1.4.7",
     "uuid": "^11.0.0",
     "dotenv": "^16.4.0",
-    "file-type": "^20.0.0"
+    "file-type": "^22.0.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
