@@ -10,7 +10,7 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        main: './src/client/main.tsx'
+        main: './index.html'
       },
       output: {
         entryFileNames: 'assets/[name]-[hash].js',

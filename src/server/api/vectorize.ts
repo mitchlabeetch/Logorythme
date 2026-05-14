@@ -115,7 +115,7 @@ export async function vectorizeHandler(req: Request & { registry?: ModelRegistry
       stages,
     };
 
-    jobs.set(jobId, { status: 'completed', result: response });
+    jobs.set(jobId, { status: 'completed', result: response, completedAt: Date.now() });
 
     logAuditEvent('processing_complete', {
       jobId,
@@ -136,7 +136,7 @@ export async function vectorizeHandler(req: Request & { registry?: ModelRegistry
     
     res.status(200).json(response);
   } catch (error) {
-    jobs.set(jobId, { status: 'failed', error: (error as Error).message });
+    jobs.set(jobId, { status: 'failed', error: (error as Error).message, completedAt: Date.now() });
     logAuditEvent('processing_error', { jobId, error: (error as Error).message });
     next(error);
   }
