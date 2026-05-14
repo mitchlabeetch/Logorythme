@@ -279,4 +279,11 @@ export class FallbackOrchestrator {
   getHealth(): ProviderHealth[] {
     return Array.from(this.providers.values()).map(e => ({ ...e.health }));
   }
+
+  /** Rebuild provider entries from the updated registry (call after registry.reinitialize()) */
+  reinitialize(): void {
+    this.providers.clear();
+    this.initializeProviders();
+    this.logger.info({ providers: Array.from(this.providers.keys()) }, 'Orchestrator reinitialized');
+  }
 }

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Wand2, Globe } from 'lucide-react';
+import { Wand2, Globe, Settings } from 'lucide-react';
 import { useTheme } from './hooks/useTheme';
 import { useVectorizer } from './hooks/useVectorizer';
 import AccessibleUpload from './components/AccessibleUpload';
@@ -10,6 +10,7 @@ import ThemeToggle from './components/ThemeToggle';
 import ModelSelector from './components/ModelSelector';
 import ErrorDisplay from './components/ErrorDisplay';
 import QualityBadge from './components/QualityBadge';
+import SettingsPage from './components/SettingsPage';
 import i18n, { SUPPORTED_LANGUAGES } from './i18n';
 
 export default function App() {
@@ -18,6 +19,19 @@ export default function App() {
   const { state, progress, result, error, upload, reset } = useVectorizer();
   const [selectedModel, setSelectedModel] = useState('auto');
   const [quality, setQuality] = useState<'high' | 'optimized' | 'minimal'>('optimized');
+  const [page, setPage] = useState<'main' | 'settings'>(
+    window.location.pathname === '/settings' ? 'settings' : 'main',
+  );
+
+  const navigateTo = useCallback((target: 'main' | 'settings') => {
+    const path = target === 'settings' ? '/settings' : '/';
+    window.history.pushState({}, '', path);
+    setPage(target);
+  }, []);
+
+  if (page === 'settings') {
+    return <SettingsPage onNavigateBack={() => navigateTo('main')} />;
+  }
 
   const handleFileSelect = useCallback((file: File) => {
     const modelParam = selectedModel === 'auto' ? undefined : selectedModel;
@@ -67,6 +81,15 @@ export default function App() {
             </div>
 
             <ThemeToggle theme={theme} onToggle={toggleTheme} />
+
+            <button
+              onClick={() => navigateTo('settings')}
+              className="btn btn-secondary p-2"
+              aria-label={t('settings.nav')}
+              title={t('settings.nav')}
+            >
+              <Settings className="h-4 w-4" aria-hidden="true" />
+            </button>
           </div>
         </div>
       </header>
