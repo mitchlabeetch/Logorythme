@@ -29,6 +29,19 @@ export interface ModelEntry {
   qualityScore: number;
 }
 
+/** Runtime-updateable API keys for all providers */
+export interface RuntimeKeys {
+  googleAiKey?: string;
+  openAiKey?: string;
+  anthropicKey?: string;
+  hfApiKey?: string;
+  hfApiEndpoint?: string;
+  vercelGatewayKey?: string;
+  customProviderKey?: string;
+  customProviderBaseUrl?: string;
+  customProviderPreset?: string;
+}
+
 /** Extended model catalog with all providers */
 export const AVAILABLE_MODELS: ModelEntry[] = [
   // Hugging Face — dedicated SVG models (RECOMMENDED)
@@ -70,68 +83,85 @@ export const AVAILABLE_MODELS: ModelEntry[] = [
 export class ModelRegistry {
   private providers = new Map<string, IProviderStrategy>();
   private logger = getRequestLogger();
+  private currentKeys: RuntimeKeys;
 
   constructor() {
+    this.currentKeys = {
+      hfApiKey: config.hfApiKey,
+      hfApiEndpoint: config.hfApiEndpoint,
+      vercelGatewayKey: config.vercelGatewayKey,
+      googleAiKey: config.googleAiKey,
+      openAiKey: config.openAiKey,
+      anthropicKey: config.anthropicKey,
+      customProviderKey: config.customProviderKey,
+      customProviderBaseUrl: config.customProviderBaseUrl,
+      customProviderPreset: config.customProviderPreset,
+    };
     this.initializeProviders();
   }
 
   /** Auto-discover and initialize providers based on API keys */
   private initializeProviders(): void {
+    this.initializeProvidersFromKeys(this.currentKeys);
+  }
+
+  /** Initialize providers from a given key set */
+  private initializeProvidersFromKeys(keys: RuntimeKeys): void {
     // 1. Hugging Face — StarVector (BEST for SVG)
-    if (config.hfApiKey) {
+    if (keys.hfApiKey) {
       this.providers.set('huggingface', new HuggingFaceProvider({
-        apiKey: config.hfApiKey,
-        baseUrl: config.hfApiEndpoint,
+        apiKey: keys.hfApiKey,
+        baseUrl: keys.hfApiEndpoint,
         timeout: 60000,
       }));
       this.logger.info('Initialized Hugging Face (StarVector) provider');
     }
 
     // 2. Vercel AI Gateway — 100+ models
-    if (config.vercelGatewayKey) {
+    if (keys.vercelGatewayKey) {
       this.providers.set('vercel-gateway', new VercelGatewayProvider({
-        apiKey: config.vercelGatewayKey,
+        apiKey: keys.vercelGatewayKey,
         timeout: 60000,
       }));
       this.logger.info('Initialized Vercel AI Gateway provider');
     }
 
     // 3. Google (Direct)
-    if (config.googleAiKey) {
+    if (keys.googleAiKey) {
       this.providers.set('google', new GoogleProvider({
-        apiKey: config.googleAiKey,
+        apiKey: keys.googleAiKey,
         timeout: 60000,
       }));
       this.logger.info('Initialized Google provider');
     }
 
     // 4. OpenAI (Direct)
-    if (config.openAiKey) {
+    if (keys.openAiKey) {
       this.providers.set('openai', new OpenAIProvider({
-        apiKey: config.openAiKey,
+        apiKey: keys.openAiKey,
         timeout: 60000,
       }));
       this.logger.info('Initialized OpenAI provider');
     }
 
     // 5. Anthropic (Direct)
-    if (config.anthropicKey) {
+    if (keys.anthropicKey) {
       this.providers.set('anthropic', new AnthropicProvider({
-        apiKey: config.anthropicKey,
+        apiKey: keys.anthropicKey,
         timeout: 60000,
       }));
       this.logger.info('Initialized Anthropic provider');
     }
 
     // 6. Custom OpenAI-compatible provider
-    if (config.customProviderKey && config.customProviderBaseUrl) {
+    if (keys.customProviderKey && keys.customProviderBaseUrl) {
       this.providers.set('custom', new CustomCompatibleProvider({
-        apiKey: config.customProviderKey,
-        baseURL: config.customProviderBaseUrl,
-        preset: config.customProviderPreset as 'groq' | 'together' | 'fireworks' | 'perplexity' | 'ollama',
+        apiKey: keys.customProviderKey,
+        baseURL: keys.customProviderBaseUrl,
+        preset: keys.customProviderPreset as 'groq' | 'together' | 'fireworks' | 'perplexity' | 'ollama',
         timeout: 60000,
       }));
-      this.logger.info(`Initialized custom provider (${config.customProviderPreset ?? 'custom URL'})`);
+      this.logger.info(`Initialized custom provider (${keys.customProviderPreset ?? 'custom URL'})`);
     }
 
     const count = this.providers.size;
@@ -140,6 +170,31 @@ export class ModelRegistry {
     } else {
       this.logger.info(`${count} AI providers initialized`);
     }
+  }
+
+  /** Get current runtime API keys (values are the actual keys) */
+  getRuntimeKeys(): RuntimeKeys {
+    return { ...this.currentKeys };
+  }
+
+  /**
+   * Reinitialize providers with updated keys.
+   * Empty string values clear the corresponding key (removing that provider).
+   */
+  reinitialize(updates: Partial<RuntimeKeys>): void {
+    const merged: RuntimeKeys = { ...this.currentKeys };
+    for (const [k, v] of Object.entries(updates)) {
+      if (v === '') {
+        // Empty string means "remove this key"
+        delete merged[k as keyof RuntimeKeys];
+      } else if (v !== undefined) {
+        (merged as Record<string, string>)[k] = v;
+      }
+    }
+    this.currentKeys = merged;
+    this.providers.clear();
+    this.initializeProvidersFromKeys(this.currentKeys);
+    this.logger.info({ providers: Array.from(this.providers.keys()) }, 'Providers reinitialized from updated keys');
   }
 
   /** Get a provider by name */

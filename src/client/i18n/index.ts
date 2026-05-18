@@ -38,9 +38,21 @@ export const SUPPORTED_LANGUAGES = [
 ];
 
 const resources = {
-  en, fr, es, de, pt,
-  ja, zh, ko, it, nl,
-  pl, tr, ar, vi, id,
+  en: { translation: en },
+  fr: { translation: fr },
+  es: { translation: es },
+  de: { translation: de },
+  pt: { translation: pt },
+  ja: { translation: ja },
+  zh: { translation: zh },
+  ko: { translation: ko },
+  it: { translation: it },
+  nl: { translation: nl },
+  pl: { translation: pl },
+  tr: { translation: tr },
+  ar: { translation: ar },
+  vi: { translation: vi },
+  id: { translation: id },
 };
 
 i18n

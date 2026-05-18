@@ -73,5 +73,50 @@
     "time": "Time",
     "fillRatio": "Fill Ratio",
     "elements": "Elements"
+  },
+  "settings": {
+    "title": "Settings",
+    "nav": "Settings",
+    "back": "Back to App",
+    "logout": "Logout",
+    "login": {
+      "title": "Admin Login",
+      "label": "Password",
+      "placeholder": "Enter admin password",
+      "submit": "Login",
+      "error": "Invalid password. Please try again."
+    },
+    "keys": {
+      "title": "AI Provider Keys",
+      "description": "Configure API keys for AI providers. Changes take effect immediately — no restart required.",
+      "save": "Save Changes",
+      "saved": "Saved successfully!",
+      "saving": "Saving...",
+      "error": "Failed to save. Please try again.",
+      "placeholder": "Leave blank to keep current value; type a new value to update",
+      "hfApiKey": "Hugging Face API Key",
+      "hfApiKeyDesc": "Required for StarVector (SOTA SVG model)",
+      "hfApiEndpoint": "Hugging Face API Endpoint (optional)",
+      "hfApiEndpointDesc": "Custom inference endpoint URL",
+      "vercelGatewayKey": "Vercel AI Gateway Key",
+      "vercelGatewayKeyDesc": "Access 100+ models via Vercel AI Gateway",
+      "googleAiKey": "Google AI API Key",
+      "googleAiKeyDesc": "Direct access to Gemini models",
+      "openAiKey": "OpenAI API Key",
+      "openAiKeyDesc": "Direct access to GPT-4o and other models",
+      "anthropicKey": "Anthropic API Key",
+      "anthropicKeyDesc": "Direct access to Claude models",
+      "customProviderKey": "Custom Provider Key",
+      "customProviderKeyDesc": "Key for Groq, Together, Fireworks, Ollama, etc.",
+      "customProviderBaseUrl": "Custom Provider Base URL",
+      "customProviderBaseUrlDesc": "Base URL for custom OpenAI-compatible provider",
+      "customProviderPreset": "Custom Provider Preset",
+      "customProviderPresetDesc": "Preset for request formatting"
+    },
+    "providers": {
+      "title": "Active Providers",
+      "none": "No providers configured. Add at least one API key above.",
+      "configured": "{{count}} provider(s) configured"
+    }
   }
 }

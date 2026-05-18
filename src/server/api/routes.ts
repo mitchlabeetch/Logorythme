@@ -10,6 +10,7 @@ import { createHealthRouter } from '../health/index.js';
 import { ModelRegistry } from '../ai/registry.js';
 import { FallbackOrchestrator } from '../ai/orchestrator.js';
 import { RANKED_MODELS } from '../ai/model-ranker.js';
+import { createSettingsRouter } from './settings.js';
 
 /** Create main API router */
 export function createApiRouter(registry: ModelRegistry, orchestrator: FallbackOrchestrator): Router {
@@ -72,6 +73,9 @@ export function createApiRouter(registry: ModelRegistry, orchestrator: FallbackO
       res.json({ providers: [], count: 0 });
     }
   });
+
+  // Settings — password-protected API key management
+  router.use('/api/v1/settings', createSettingsRouter(registry, orchestrator));
 
   return router;
 }

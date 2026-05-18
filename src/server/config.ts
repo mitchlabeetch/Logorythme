@@ -52,6 +52,9 @@ const envSchema = z.object({
 
   // Monitoring
   SENTRY_DSN: z.string().optional(),
+
+  // Settings GUI
+  SETTINGS_PASSWORD: z.string().default('admin'),
 });
 
 /** Parsed and validated configuration */
@@ -91,6 +94,9 @@ export interface Config {
   
   // Monitoring
   readonly sentryDsn?: string;
+
+  // Settings GUI
+  readonly settingsPassword: string;
 }
 
 function loadConfig(): Config {
@@ -139,6 +145,9 @@ function loadConfig(): Config {
     
     // Monitoring
     sentryDsn: env.SENTRY_DSN,
+
+    // Settings GUI
+    settingsPassword: env.SETTINGS_PASSWORD,
   });
 }
 

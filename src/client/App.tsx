@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Wand2, Globe } from 'lucide-react';
+import { Wand2, Globe, Settings } from 'lucide-react';
 import { useTheme } from './hooks/useTheme';
 import { useVectorizer } from './hooks/useVectorizer';
 import AccessibleUpload from './components/AccessibleUpload';
@@ -10,7 +10,8 @@ import ThemeToggle from './components/ThemeToggle';
 import ModelSelector from './components/ModelSelector';
 import ErrorDisplay from './components/ErrorDisplay';
 import QualityBadge from './components/QualityBadge';
-import i18n, { SUPPORTED_LANGUAGES } from './i18n';
+import SettingsPage from './components/SettingsPage';
+import { SUPPORTED_LANGUAGES } from './i18n';
 
 export default function App() {
   const { t, i18n: i18nInstance } = useTranslation();
@@ -18,7 +19,26 @@ export default function App() {
   const { state, progress, result, error, upload, reset } = useVectorizer();
   const [selectedModel, setSelectedModel] = useState('auto');
   const [quality, setQuality] = useState<'high' | 'optimized' | 'minimal'>('optimized');
+  const [page, setPage] = useState<'main' | 'settings'>(
+    window.location.pathname === '/settings' ? 'settings' : 'main',
+  );
 
+  const navigateTo = useCallback((target: 'main' | 'settings') => {
+    const path = target === 'settings' ? '/settings' : '/';
+    window.history.pushState({}, '', path);
+    setPage(target);
+  }, []);
+
+  // Sync page state with browser back/forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      setPage(window.location.pathname === '/settings' ? 'settings' : 'main');
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // All hooks must be declared before any conditional return
   const handleFileSelect = useCallback((file: File) => {
     const modelParam = selectedModel === 'auto' ? undefined : selectedModel;
     upload(file, quality, modelParam);
@@ -31,7 +51,9 @@ export default function App() {
     if (lang) document.documentElement.dir = lang.dir;
   }, [i18nInstance]);
 
-  return (
+  if (page === 'settings') {
+    return <SettingsPage onNavigateBack={() => navigateTo('main')} />;
+  }  return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors" dir={i18nInstance.language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Skip link */}
       <a href="#main-content" className="skip-link">{t('nav.skipToContent')}</a>
@@ -67,6 +89,15 @@ export default function App() {
             </div>
 
             <ThemeToggle theme={theme} onToggle={toggleTheme} />
+
+            <button
+              onClick={() => navigateTo('settings')}
+              className="btn btn-secondary p-2"
+              aria-label={t('settings.nav')}
+              title={t('settings.nav')}
+            >
+              <Settings className="h-4 w-4" aria-hidden="true" />
+            </button>
           </div>
         </div>
       </header>

@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Cpu, Sparkles, Zap, Star, Globe, Server } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { API_BASE, HAS_CONFIGURED_API } from '../config/api';
+import { API_BASE } from '../config/api';
 
 interface ModelEntry {
   id: string;
@@ -87,8 +87,6 @@ export default function ModelSelector({ models = DEFAULT_MODELS, selected = 'aut
 
   // Fetch available models from API
   useEffect(() => {
-    if (!HAS_CONFIGURED_API) return;
-
     fetch(`${API_BASE}/models`)
       .then(r => r.ok ? r.json() : null)
       .then(data => {

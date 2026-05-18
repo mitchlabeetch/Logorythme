@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { VectorizeResponse } from '@server/types';
-import { API_BASE, API_CONFIG_MESSAGE, HAS_CONFIGURED_API } from '../config/api';
+import { API_BASE } from '../config/api';
 
 export type ProcessingState = 'idle' | 'uploading' | 'processing' | 'done' | 'error';
 
@@ -20,12 +20,6 @@ export function useVectorizer(): UseVectorizerResult {
   const [error, setError] = useState<string | null>(null);
 
   const upload = useCallback(async (file: File, quality = 'optimized', model?: string) => {
-    if (!HAS_CONFIGURED_API) {
-      setError(API_CONFIG_MESSAGE);
-      setState('error');
-      return;
-    }
-
     setState('uploading');
     setProgress(10);
     setError(null);
@@ -68,8 +62,6 @@ export function useVectorizer(): UseVectorizerResult {
               message = details.title;
             }
           }
-        } else if (response.status === 404) {
-          message = API_CONFIG_MESSAGE;
         }
         throw new Error(message);
       }
