@@ -14,6 +14,7 @@ import {
   ImageProcessingError,
   RateLimitError,
   SecurityError,
+  AuthenticationError,
   ErrorCode,
   RETRYABLE_ERROR_CODES,
 } from './index.js';
@@ -67,6 +68,18 @@ export function notFoundHandler(req: Request, res: Response): void {
 
 /** Convert any Error to RFC 7807 Problem Details */
 function errorToProblemDetails(err: Error, requestId: string): ProblemDetails {
+  if (err instanceof AuthenticationError) {
+    return {
+      type: 'https://api.logorythme.com/errors/unauthorized',
+      title: 'Unauthorized',
+      status: 401,
+      detail: err.message,
+      instance: requestId,
+      errorCode: err.errorCode,
+      retryable: false,
+    };
+  }
+
   if (err instanceof RateLimitError) {
     return {
       type: 'https://api.logorythme.com/errors/rate-limit',

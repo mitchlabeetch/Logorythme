@@ -28,6 +28,9 @@ export enum ErrorCode {
   INTERNAL_ERROR = 'INTERNAL_ERROR',
   SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
   CONFIGURATION_ERROR = 'CONFIG_ERROR',
+
+  // Auth errors
+  UNAUTHORIZED = 'UNAUTHORIZED',
 }
 
 /** Set of error codes that support client retry */
@@ -170,6 +173,17 @@ export class SecurityError extends AppError {
   readonly retryable = false;
 
   constructor(message: string) {
+    super(message, false);
+  }
+}
+
+/** Authentication errors: invalid credentials or missing/expired session token */
+export class AuthenticationError extends AppError {
+  readonly statusCode = 401;
+  readonly errorCode = ErrorCode.UNAUTHORIZED;
+  readonly retryable = false;
+
+  constructor(message = 'Authentication required') {
     super(message, false);
   }
 }

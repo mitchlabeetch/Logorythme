@@ -12,11 +12,13 @@
  */
 
 import { Router } from 'express';
-import type { Request, Response } from 'express';
-import { randomUUID } from 'crypto';
+import type { Request, Response, NextFunction } from 'express';
+import { randomUUID, timingSafeEqual } from 'crypto';
+import { z } from 'zod';
 import { config } from '../config.js';
 import type { ModelRegistry, RuntimeKeys } from '../ai/registry.js';
 import type { FallbackOrchestrator } from '../ai/orchestrator.js';
+import { AuthenticationError } from '../errors/index.js';
 
 /** Session token -> expiry timestamp (ms) */
 const sessions = new Map<string, number>();
@@ -42,6 +44,22 @@ function extractToken(req: Request): string | undefined {
   return undefined;
 }
 
+/**
+ * Constant-time password comparison to mitigate timing attacks.
+ * Falls back to `false` when lengths differ (still constant-time on length check
+ * because we pad to avoid early exit information leakage via the comparison).
+ */
+function safeComparePasswords(a: string, b: string): boolean {
+  const aBuf = Buffer.from(a, 'utf8');
+  const bBuf = Buffer.from(b, 'utf8');
+  if (aBuf.length !== bBuf.length) {
+    // Run a dummy comparison to avoid timing side-channels on length difference
+    timingSafeEqual(aBuf, aBuf);
+    return false;
+  }
+  return timingSafeEqual(aBuf, bBuf);
+}
+
 /** Mask an API key for display — shows only the last 4 characters */
 function maskKey(value: string | undefined): string {
   if (!value) return '';
@@ -64,6 +82,19 @@ function buildMaskedSettings(keys: RuntimeKeys): Record<string, string> {
   };
 }
 
+/** Zod schema for validating PUT /settings body */
+const settingsBodySchema = z.object({
+  hfApiKey: z.string().optional(),
+  hfApiEndpoint: z.string().url().optional().or(z.literal('')),
+  vercelGatewayKey: z.string().optional(),
+  googleAiKey: z.string().optional(),
+  openAiKey: z.string().optional(),
+  anthropicKey: z.string().optional(),
+  customProviderKey: z.string().optional(),
+  customProviderBaseUrl: z.string().url().optional().or(z.literal('')),
+  customProviderPreset: z.enum(['groq', 'together', 'fireworks', 'perplexity', 'ollama']).optional().or(z.literal('')),
+}).strict();
+
 export function createSettingsRouter(
   registry: ModelRegistry,
   orchestrator: FallbackOrchestrator,
@@ -73,8 +104,18 @@ export function createSettingsRouter(
   // POST /api/v1/settings/auth — login
   router.post('/auth', (req: Request, res: Response) => {
     const { password } = req.body as { password?: string };
-    if (!password || password !== config.settingsPassword) {
-      res.status(401).json({ error: 'Invalid password' });
+    if (!password || !safeComparePasswords(password, config.settingsPassword)) {
+      // Use 401 via direct response here (login endpoint is pre-auth, no token to check)
+      res.status(401)
+        .setHeader('Content-Type', 'application/problem+json')
+        .json({
+          type: 'https://api.logorythme.com/errors/unauthorized',
+          title: 'Unauthorized',
+          status: 401,
+          detail: 'Invalid password',
+          errorCode: 'UNAUTHORIZED',
+          retryable: false,
+        });
       return;
     }
     const token = randomUUID();
@@ -90,10 +131,9 @@ export function createSettingsRouter(
   });
 
   // GET /api/v1/settings — get masked current settings
-  router.get('/', (req: Request, res: Response) => {
+  router.get('/', (req: Request, res: Response, next: NextFunction) => {
     if (!isValidToken(extractToken(req))) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
+      return next(new AuthenticationError('Valid session token required'));
     }
     const keys = registry.getRuntimeKeys();
     res.json({
@@ -103,13 +143,27 @@ export function createSettingsRouter(
   });
 
   // PUT /api/v1/settings — update API keys
-  router.put('/', (req: Request, res: Response) => {
+  router.put('/', (req: Request, res: Response, next: NextFunction) => {
     if (!isValidToken(extractToken(req))) {
-      res.status(401).json({ error: 'Unauthorized' });
+      return next(new AuthenticationError('Valid session token required'));
+    }
+
+    const parsed = settingsBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400)
+        .setHeader('Content-Type', 'application/problem+json')
+        .json({
+          type: 'https://api.logorythme.com/errors/bad-request',
+          title: 'Bad Request',
+          status: 400,
+          detail: parsed.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join('; '),
+          errorCode: 'BAD_REQUEST',
+          retryable: false,
+        });
       return;
     }
-    const body = req.body as Partial<RuntimeKeys>;
-    registry.reinitialize(body);
+
+    registry.reinitialize(parsed.data as Partial<RuntimeKeys>);
     orchestrator.reinitialize();
     res.json({
       message: 'Settings updated',

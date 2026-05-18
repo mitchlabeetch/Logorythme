@@ -166,10 +166,14 @@ export default function SettingsPage({ onNavigateBack }: { onNavigateBack?: () =
     e.preventDefault();
     setSaveStatus('saving');
     try {
+      // Only send fields the user actually filled in; empty fields keep the existing key
+      const payload = Object.fromEntries(
+        Object.entries(form).filter(([, v]) => v !== ''),
+      );
       const res = await fetch(`${API_BASE}/settings`, {
         method: 'PUT',
         headers: authHeaders(),
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       if (res.status === 401) { setToken(null); removeStoredToken(); return; }
       if (!res.ok) { setSaveStatus('error'); return; }

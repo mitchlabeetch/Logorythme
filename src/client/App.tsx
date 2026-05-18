@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Wand2, Globe, Settings } from 'lucide-react';
 import { useTheme } from './hooks/useTheme';
@@ -11,7 +11,7 @@ import ModelSelector from './components/ModelSelector';
 import ErrorDisplay from './components/ErrorDisplay';
 import QualityBadge from './components/QualityBadge';
 import SettingsPage from './components/SettingsPage';
-import i18n, { SUPPORTED_LANGUAGES } from './i18n';
+import { SUPPORTED_LANGUAGES } from './i18n';
 
 export default function App() {
   const { t, i18n: i18nInstance } = useTranslation();
@@ -29,10 +29,16 @@ export default function App() {
     setPage(target);
   }, []);
 
-  if (page === 'settings') {
-    return <SettingsPage onNavigateBack={() => navigateTo('main')} />;
-  }
+  // Sync page state with browser back/forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      setPage(window.location.pathname === '/settings' ? 'settings' : 'main');
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
+  // All hooks must be declared before any conditional return
   const handleFileSelect = useCallback((file: File) => {
     const modelParam = selectedModel === 'auto' ? undefined : selectedModel;
     upload(file, quality, modelParam);
@@ -45,7 +51,9 @@ export default function App() {
     if (lang) document.documentElement.dir = lang.dir;
   }, [i18nInstance]);
 
-  return (
+  if (page === 'settings') {
+    return <SettingsPage onNavigateBack={() => navigateTo('main')} />;
+  }  return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors" dir={i18nInstance.language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Skip link */}
       <a href="#main-content" className="skip-link">{t('nav.skipToContent')}</a>

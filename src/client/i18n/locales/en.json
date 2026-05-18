@@ -93,7 +93,7 @@
       "saved": "Saved successfully!",
       "saving": "Saving...",
       "error": "Failed to save. Please try again.",
-      "placeholder": "Leave blank to keep current value, enter value to set",
+      "placeholder": "Leave blank to keep current value; type a new value to update",
       "hfApiKey": "Hugging Face API Key",
       "hfApiKeyDesc": "Required for StarVector (SOTA SVG model)",
       "hfApiEndpoint": "Hugging Face API Endpoint (optional)",
